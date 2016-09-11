@@ -14,9 +14,9 @@ class AltitudeProfile():
 
         with open(filename, 'r') as data_file:
             profile = json.load(data_file)
-        self.alts = np.array([float(i) for i in profile['data']])
+        self.alts = np.array(profile['data'])
         self.timestep = profile['timestep']
-        self.times = np.arange(0, self.alts.size, self.timestep)
+        self.times = np.arange(0, self.alts.size*self.timestep, self.timestep)
 
     def alt(self, s):
         '''
@@ -43,7 +43,9 @@ class AltitudeProfile():
         
 
 if __name__ == '__main__':
-    ap = AltitudeProfile('umhab52.txt')
+    ap = AltitudeProfile('umhab48.txt')
     print(ap.timestep)
     print(ap.alts)
+    print(ap.alts.size)
+    print(ap.times.size)
     print(ap.alt(24))
