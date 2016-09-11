@@ -1,19 +1,49 @@
 #!/usr/bin/python3
 
 import json
+import numpy as np
 
 class AltitudeProfile():
     def __init__(self, filename):
-        self.parseProfile(filename)
+        self.parse_profile(filename)
 
-    def parseProfile(self, filename):
+    def parse_profile(self, filename):
+        '''
+        Parse a JSON file containing an ascent profile.
+        '''
+
         with open(filename, 'r') as data_file:
             profile = json.load(data_file)
-        self.data = profile['data']
+        self.alts = np.array([float(i) for i in profile['data']])
         self.timestep = profile['timestep']
+        self.times = np.arange(0, self.alts.size, self.timestep)
+
+    def alt(self, s):
+        '''
+        Returns the altitude at the desired time.
+        s is the time in seconds, with 0 being the beginning
+        of the simulation.
+        '''
+
+        index = s / self.timestep
+
+        # alt = None if seconds is outside of the flight time.
+        if (index > self.alts.size):
+            alt = None
+        elif (index < 0):
+            alt = None
+
+        # otherwise, linearly interpolate between the two closest values.
+        else:
+            alt = np.empty
+            alt = np.interp(index, self.times, self.alts)
+
+        return alt
+            
         
 
 if __name__ == '__main__':
     ap = AltitudeProfile('umhab52.txt')
     print(ap.timestep)
-    print(len(ap.data))
+    print(ap.alts)
+    print(ap.alt(24))
