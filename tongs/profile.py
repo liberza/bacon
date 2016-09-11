@@ -3,7 +3,8 @@
 import json
 import numpy as np
 
-class AltitudeProfile():
+
+class FlightProfile():
     def __init__(self, filename):
         self.parse_profile(filename)
 
@@ -18,14 +19,14 @@ class AltitudeProfile():
         self.timestep = profile['timestep']
         self.times = np.arange(0, self.alts.size*self.timestep, self.timestep)
 
-    def alt(self, s):
+    def alt(self, secs):
         '''
         Returns the altitude at the desired time.
         s is the time in seconds, with 0 being the beginning
-        of the simulation.
+        of the flight.
         '''
 
-        index = s / self.timestep
+        index = secs / self.timestep
 
         # alt = None if seconds is outside of the flight time.
         if (index > self.alts.size):
@@ -43,7 +44,7 @@ class AltitudeProfile():
         
 
 if __name__ == '__main__':
-    ap = AltitudeProfile('umhab48.txt')
+    ap = FlightProfile('umhab48.txt')
     print(ap.timestep)
     print(ap.alts)
     print(ap.alts.size)
