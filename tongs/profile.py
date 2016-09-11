@@ -1,10 +1,14 @@
 #!/usr/bin/python3
-
 import json
 import numpy as np
 
 
 class FlightProfile():
+    '''
+    Instance contains altitude data for a balloon flight. Use alt() method
+    to get interpolated data.
+    '''
+
     def __init__(self, filename):
         self.parse_profile(filename)
 
@@ -19,14 +23,14 @@ class FlightProfile():
         self.timestep = profile['timestep']
         self.times = np.arange(0, self.alts.size*self.timestep, self.timestep)
 
-    def alt(self, secs):
+    def alt(self, s):
         '''
         Returns the altitude at the desired time.
         s is the time in seconds, with 0 being the beginning
         of the flight.
         '''
 
-        index = secs / self.timestep
+        index = s / self.timestep
 
         # alt = None if seconds is outside of the flight time.
         if (index > self.alts.size):
@@ -42,11 +46,10 @@ class FlightProfile():
         return alt
             
         
-
 if __name__ == '__main__':
-    ap = FlightProfile('umhab48.txt')
-    print(ap.timestep)
-    print(ap.alts)
-    print(ap.alts.size)
-    print(ap.times.size)
-    print(ap.alt(24))
+    fp = FlightProfile('umhab48.txt')
+    print(fp.timestep)
+    print(fp.alts)
+    print(fp.alts.size)
+    print(fp.times.size)
+    print(fp.alt(24))
