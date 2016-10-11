@@ -21,8 +21,8 @@ uint8_t serial_init(uint16_t baudrate, uint8_t bits, uint8_t parity, uint8_t sto
         err |= DATA_BITS_ERR;
     }
     if ((parity != PARITY_DISABLED) &&
-             (parity != PARITY_EVEN) &&
-             (parity != PARITY_ODD))
+        (parity != PARITY_EVEN) &&
+        (parity != PARITY_ODD))
     {
         err |= PARITY_ERR;
     }
@@ -37,9 +37,9 @@ uint8_t serial_init(uint16_t baudrate, uint8_t bits, uint8_t parity, uint8_t sto
     }
     else
     {
-        UBRR0H = baudrate>>8;
+        UBRR0H = baudrate >> 8;
         UBRR0L = baudrate;
-        UCSR0C = 0x00 | bits | parity | stop;
+        UCSR0C = bits | parity | stop;
         TX_ENABLE();
         RX_ENABLE();
         TX_INT_ENABLE();
