@@ -30,12 +30,7 @@ uint8_t serial_init(uint16_t baudrate, uint8_t bits, uint8_t parity, uint8_t sto
     {
         err |= STOP_BITS_ERR;
     }
-    if (err)
-    {
-        // eventually can be used to light status LEDs
-        return err;
-    }
-    else
+    if (!err)
     {
         UBRR0H = baudrate >> 8;
         UBRR0L = baudrate;
@@ -44,6 +39,7 @@ uint8_t serial_init(uint16_t baudrate, uint8_t bits, uint8_t parity, uint8_t sto
         RX_ENABLE();
         TX_INT_ENABLE();
     }
+    return err;
 }
 
 void ISR(USART_RXC_vect)
