@@ -18,11 +18,15 @@
 #define DATA_BITS_9 (uint8_t)((1<<UCSZ02)|(1<<UCSZ01)|(1<<UCSZ00))
 
 #define STOP_BITS_1 (uint8_t)(0x00)
-#define STOP_SIZE_2 (uint8_t)(1<<USBS0)
+#define STOP_BITS_2 (uint8_t)(1<<USBS0)
 
 #define PARITY_DISABLED (uint8_t)(0x00)
 #define PARITY_EVEN     (uint8_t)(1<<UPM01)
 #define PARITY_ODD      (uint8_t)((1<<UPM01)|(1<<UPM00))
+
+#define DATA_BITS_ERR (uint8_t)(-0x1)
+#define STOP_BITS_ERR (uint8_t)(-0x2)
+#define PARITY_ERR (uint8_t)(-0x4)
 
 extern uint8_t serial_rx_buffer;
 

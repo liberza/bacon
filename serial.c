@@ -1,6 +1,8 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 
+#include "serial.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -9,23 +11,29 @@ uint8_t serial_rx_buffer;
 
 uint8_t serial_init(uint16_t baudrate, uint8_t bits, uint8_t parity, uint8_t stop)
 {
+    uint8_t err = 0;
     if ((bits != DATA_BITS_5) &&
         (bits != DATA_BITS_6) &&
         (bits != DATA_BITS_7) &&
         (bits != DATA_BITS_8) &&
         (bits != DATA_BITS_9))
     {
-        // error
+        err |= DATA_BITS_ERR;
     }
-    else if ((parity != PARITY_DISABLED) &&
+    if ((parity != PARITY_DISABLED) &&
              (parity != PARITY_EVEN) &&
              (parity != PARITY_ODD))
     {
-        // error
+        err |= PARITY_ERR;
     }
-    else if ((stop != STOP_BITS_1) && (stop != STOP_BITS_2))
+    if ((stop != STOP_BITS_1) && (stop != STOP_BITS_2))
     {
-        // error
+        err |= STOP_BITS_ERR;
+    }
+    if (err)
+    {
+        // eventually can be used to light status LEDs
+        return err;
     }
     else
     {
