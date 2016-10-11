@@ -24,13 +24,13 @@
 #define PARITY_EVEN     (uint8_t)(1<<UPM01)
 #define PARITY_ODD      (uint8_t)((1<<UPM01)|(1<<UPM00))
 
-uint8_t serial_rx_buffer;
+extern uint8_t serial_rx_buffer;
 
 //! Initialize UART with the given parameters.
 uint8_t serial_init(uint16_t baudrate, //! baudrate (prescaled)
                     uint8_t bits,      //! data bits setting
                     uint8_t parity,    //! parity bits setting
-                    uint8_t stop)      //! stop bits setting
+                    uint8_t stop);     //! stop bits setting
 
 
 //! Get a byte from the UART
