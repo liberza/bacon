@@ -11,23 +11,24 @@
 #define RX_INT_ENABLE()     UCSR0B |= (1<<RXCIE0)
 #define RX_INT_DISABLE()    UCSR0B &= ~(1<<RXCIE0)
 
-#define DATA_BITS_5 (uint8_t)(0x00)
-#define DATA_BITS_6 (uint8_t)(1<<UCSZ00)
-#define DATA_BITS_7 (uint8_t)(1<<UCSZ01)
-#define DATA_BITS_8 (uint8_t)((1<<UCSZ00)|(1<<UCSZ01))
-#define DATA_BITS_9 (uint8_t)((1<<UCSZ02)|(1<<UCSZ01)|(1<<UCSZ00))
+#define DATA_BITS_5         (uint8_t)(0x00)
+#define DATA_BITS_6         (uint8_t)(1<<UCSZ00)
+#define DATA_BITS_7         (uint8_t)(1<<UCSZ01)
+#define DATA_BITS_8         (uint8_t)((1<<UCSZ00)|(1<<UCSZ01))
+#define DATA_BITS_9         (uint8_t)((1<<UCSZ02)|(1<<UCSZ01)|(1<<UCSZ00))
 
-#define STOP_BITS_1 (uint8_t)(0x00)
-#define STOP_BITS_2 (uint8_t)(1<<USBS0)
+#define STOP_BITS_1         (uint8_t)(0x00)
+#define STOP_BITS_2         (uint8_t)(1<<USBS0)
 
-#define PARITY_DISABLED (uint8_t)(0x00)
-#define PARITY_EVEN     (uint8_t)(1<<UPM01)
-#define PARITY_ODD      (uint8_t)((1<<UPM01)|(1<<UPM00))
+#define PARITY_DISABLED     (uint8_t)(0x00)
+#define PARITY_EVEN         (uint8_t)(1<<UPM01)
+#define PARITY_ODD          (uint8_t)((1<<UPM01)|(1<<UPM00))
 
-#define DATA_BITS_ERR (uint8_t)(-0x1)
-#define STOP_BITS_ERR (uint8_t)(-0x2)
-#define PARITY_ERR (uint8_t)(-0x4)
+#define DATA_BITS_ERR       (uint8_t)(0x1)
+#define STOP_BITS_ERR       (uint8_t)(0x2)
+#define PARITY_ERR          (uint8_t)(0x4)
 
+//! Buffer for serial RX interrupt service routine.
 extern uint8_t serial_rx_buffer;
 
 //! Initialize UART with the given parameters.
@@ -43,7 +44,7 @@ uint8_t get_byte();
 //! Put a byte to the UART
 void put_byte(uint8_t byte);
 
-//! ISR for handling UART RX
+//! Interrupt service routine for handling UART RX
 void ISR(USART_RXC_vect);
 
 #endif
