@@ -11,9 +11,6 @@
 #define RX_INT_ENABLE()     UCSR0B |= (1<<RXCIE0)
 #define RX_INT_DISABLE()    UCSR0B &= ~(1<<RXCIE0)
 
-
-#define TX
-
 //! Initialize UART with the given parameters.
 uint8_t serial_init(uint16_t baudrate); //! baudrate (prescaled)
 
@@ -25,3 +22,5 @@ void put_byte(uint8_t byte);
 
 //! ISR for handling UART RX
 void ISR(USART_RXC_vect);
+
+#endif
