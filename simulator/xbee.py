@@ -37,6 +37,7 @@ class XBee():
 
     def unescape(self, data):
         unescaped = bytearray()
+        # create an iterator from range() so we can use next() on it
         q = iter(range(len(data)))
         for i in q:
             if data[i] == self.ESCAPE:
