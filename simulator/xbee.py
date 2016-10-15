@@ -4,10 +4,10 @@ import queue
 
 # class for managing XBee API mode 
 class XBee():
-    FRAME_DELIM = b'\x7E'
-    ESCAPE = b'\x7D'
-    XON = b'\x11'
-    XOFF = b'\x13'
+    FRAME_DELIM = 0x7E
+    ESCAPE = 0x7D
+    XON = 0x11
+    XOFF = 0x13
 
     SPECIAL_BYTES = (FRAME_DELIM, ESCAPE, XON, XOFF)
     
@@ -22,14 +22,36 @@ class XBee():
                                     bytesize=serial.EIGHTBITS
                                     )
 
-    def tx(data, dest=0x000000000000FFFF, opts=0x00):
+    def tx(self, data, dest=0x000000000000FFFF, opts=0x00):
         pass
 
-    def escape(data):
-        escaped = b''
+    def escape(self, data):
+        escaped = bytearray()
         for byte in data:
-            if byte in SPECIAL_BYTES:
-                escaped += ESCAPE
-                escaped += byte ^ 0x20
+            if byte in self.SPECIAL_BYTES:
+                escaped.append(self.ESCAPE)
+                escaped.append(byte ^ 0x20)
             else:
-                escaped += byte
+                escaped.append(byte)
+        return escaped
+
+    def unescape(self, data):
+        unescaped = bytearray()
+        q = iter(range(len(data)))
+        for i in q:
+            if data[i] == self.ESCAPE:
+                unescaped.append(data[i+1] ^ 0x20)
+                next(q, None) # skip the next iteration
+            else:
+                unescaped.append(data[i])
+        return unescaped
+                
+
+if __name__ == '__main__':
+    xb = XBee('/dev/xbee', 1200)
+    data = bytearray((b'ASDFLOL qwerty \x11 hello {}{}'))
+    print(data)
+    new = xb.escape(data)
+    print(new)
+    unescaped = xb.unescape(new)
+    print(unescaped)
