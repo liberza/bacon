@@ -9,6 +9,9 @@ class XBee():
     XON = 0x11
     XOFF = 0x13
 
+    FRAME_TX = 0x10
+    FRAME_AT = 0x09
+
     SPECIAL_BYTES = (FRAME_DELIM, ESCAPE, XON, XOFF)
     
     rx_bytes = bytearray()
@@ -21,10 +24,56 @@ class XBee():
                                     stopbits=serial.STOPBITS_ONE,
                                     bytesize=serial.EIGHTBITS
                                     )
+        # need to do some initialization here.
+        # enter AT mode and get the address of the xbee. upper 32 bits:"ATSH" lower 32 bits:"ATSL"
+        # also get the max payload size with "ATNP"
+        self.addr = 0x00000000000001337
+        self.max_payload = 100
 
     def tx(self, data, dest=0x000000000000FFFF, opts=0x00):
-        pass
+        '''
+        data is an unescaped string.
+        dest is the 64-bit digimesh address to tx to.
+        opts are the frame options.
+        '''
+        if (len(data) > self.max_payload):
+            print("data too long, splitting frames is not supported yet.")
 
+        frame_size = len(data) + 15     # tx api frame has 15 bytes overhead
+        frame = bytearray(((frame_size >> 8) & 0x0FF, 
+                           (frame_size & 0x0FF),
+                           self.FRAME_TX, 
+                           # destination
+                           (dest >> 64) & 0x0FF,
+                           (dest >> 56) & 0x0FF,
+                           (dest >> 48) & 0x0FF,
+                           (dest >> 40) & 0x0FF,
+                           (dest >> 32) & 0x0FF,
+                           (dest >> 24) & 0x0FF,
+                           (dest >> 16) & 0x0FF,
+                           (dest >> 8) & 0x0FF,
+                           (dest & 0x0FF),
+                           0xFF, # reserved
+                           0xFE, # reserved
+                           0x00, # broadcast radius (default 0x00 for radius=max hops)
+                           0x00, # tx options (default, use whatever is already set)
+                           ))
+
+        # append the data
+        frame += bytearray(data.encode())
+
+        # append checksum
+        frame.append(0xFF - (sum(frame[3:]) & 0x0FF))
+        
+        # escape the frame
+        frame = self.escape(frame)
+
+        # prepend the unescaped delimiter
+        frame = bytearray(b'\x7E') + frame
+
+        return self.serial.write(frame)
+
+        
     def escape(self, data):
         escaped = bytearray()
         for byte in data:
@@ -56,3 +105,4 @@ if __name__ == '__main__':
     print(new)
     unescaped = xb.unescape(new)
     print(unescaped)
+    xb.tx('lol this uses the api')
