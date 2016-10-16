@@ -11,10 +11,10 @@ class XBee():
 
     FRAME_TX = 0x10
     FRAME_AT = 0x09
+    BUF_FULL_TIMEOUT = 5
 
     SPECIAL_BYTES = (FRAME_DELIM, ESCAPE, XON, XOFF)
     
-    rx_bytes = bytearray()
     rx_queue = queue.Queue()
 
     def __init__(self, devfile, baud):
@@ -71,9 +71,22 @@ class XBee():
         # prepend the unescaped delimiter
         frame = bytearray(b'\x7E') + frame
 
+        print(frame)
+
         return self.serial.write(frame)
 
-        
+    def rx(self):
+        '''
+        Read bytes from serial if any are waiting.
+        Then validate frames and add to rx_queue.
+        '''
+        num_bytes = self.serial.in_waiting
+        incoming = self.serial.read(num_bytes)
+        sequence = incoming.split(bytes(b'\x7E'))        
+        for s in sequence:
+            if (self.valid_frame(s)):
+                self.rx_queue.put(s, self.BUF_FULL_TIMEOUT)
+            
     def escape(self, data):
         escaped = bytearray()
         for byte in data:
@@ -95,6 +108,13 @@ class XBee():
             else:
                 unescaped.append(data[i])
         return unescaped
+
+    def valid_frame(self, frame):
+        # do frame validation here...
+        if frame:
+            return True
+        else:
+            return False
                 
 
 if __name__ == '__main__':
@@ -105,4 +125,6 @@ if __name__ == '__main__':
     print(new)
     unescaped = xb.unescape(new)
     print(unescaped)
-    xb.tx('lol this uses the api')
+    xb.tx('lol this uses the api{} heh asdfasdfasdf')
+    xb.rx()
+    print(xb.rx_queue)
