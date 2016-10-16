@@ -7,7 +7,11 @@
 #include <string.h>
 #include <stdlib.h>
 
-uint8_t serial_rx_buffer;
+#define BUF_SIZE 255;
+
+uint8_t serial_rx_byte = 0;
+uint8_t serial_rx_buf_index = 0;
+uint8_t serial_rx_buffer[BUF_SIZE];
 
 uint8_t serial_init(uint16_t baudrate, uint8_t bits, uint8_t parity, uint8_t stop)
 {
@@ -44,5 +48,15 @@ uint8_t serial_init(uint16_t baudrate, uint8_t bits, uint8_t parity, uint8_t sto
 
 void ISR(USART_RXC_vect)
 {
-    serial_rx_buffer = UBR0;
+	serial_rx_byte = UBR0;
+
+	if (serial_rx_byte == /*end of frame*/){
+		serial_rx_buf_index = 0;
+		// wipe buffer?
+	}
+
+	else {
+    	serial_rx_buffer[serial_rx_buf_index] = serial_rx_byte;
+		serial_rx_buf_index++;	
+	}
 }
