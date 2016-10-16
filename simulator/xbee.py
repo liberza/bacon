@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 import serial
 import queue
+import time
 
 # class for managing XBee API mode 
 class XBee():
@@ -12,6 +13,7 @@ class XBee():
     FRAME_TX = 0x10
     FRAME_AT = 0x09
     BUF_FULL_TIMEOUT = 5
+    BUF_GET_TIMEOUT = 10
 
     SPECIAL_BYTES = (FRAME_DELIM, ESCAPE, XON, XOFF)
     
@@ -27,7 +29,7 @@ class XBee():
         # need to do some initialization here.
         # enter AT mode and get the address of the xbee. upper 32 bits:"ATSH" lower 32 bits:"ATSL"
         # also get the max payload size with "ATNP"
-        self.addr = 0x00000000000001337
+        self.addr = 0x13A2004146764D
         self.max_payload = 100
 
     def tx(self, data, dest=0x000000000000FFFF, opts=0x00):
@@ -39,12 +41,12 @@ class XBee():
         if (len(data) > self.max_payload):
             print("data too long, splitting frames is not supported yet.")
 
-        frame_size = len(data) + 15     # tx api frame has 15 bytes overhead
+        frame_size = len(data) + 14     # tx api frame has 14 bytes overhead
         frame = bytearray(((frame_size >> 8) & 0x0FF, 
                            (frame_size & 0x0FF),
                            self.FRAME_TX, 
+                           0x01,
                            # destination
-                           (dest >> 64) & 0x0FF,
                            (dest >> 56) & 0x0FF,
                            (dest >> 48) & 0x0FF,
                            (dest >> 40) & 0x0FF,
@@ -63,7 +65,7 @@ class XBee():
         frame += bytearray(data.encode())
 
         # append checksum
-        frame.append(0xFF - (sum(frame[3:]) & 0x0FF))
+        frame.append(0xFF - (sum(frame[2:]) & 0x0FF))
         
         # escape the frame
         frame = self.escape(frame)
@@ -80,12 +82,17 @@ class XBee():
         Read bytes from serial if any are waiting.
         Then validate frames and add to rx_queue.
         '''
+        received = False
         num_bytes = self.serial.in_waiting
         incoming = self.serial.read(num_bytes)
         sequence = incoming.split(bytes(b'\x7E'))        
+        print(sequence)
         for s in sequence:
-            if (self.valid_frame(s)):
+            if (self.validate_frame(s)):
                 self.rx_queue.put(s, self.BUF_FULL_TIMEOUT)
+                received = True
+
+        return received
             
     def escape(self, data):
         escaped = bytearray()
@@ -109,22 +116,48 @@ class XBee():
                 unescaped.append(data[i])
         return unescaped
 
-    def valid_frame(self, frame):
+    def validate_frame(self, frame):
         # do frame validation here...
-        if frame:
-            return True
-        else:
+        frame = self.unescape(frame)
+        if (len(frame) < 5):
+            # already know this isn't a valid frame: not enough overhead
+            print('invalid len')
             return False
+        frame_len = (frame[0] << 8) | frame[1]
+        # make sure frame length is accurate
+        if (len(frame[2:-1]) != frame_len):
+            print('invalid len 2: ' + str(len(frame[2:-1])) + ' act: ' + str(frame_len))
+            return False
+        # check checksum
+        if ((sum(frame[2:]) & 0x0FF) != 0xFF):
+            print('invalid checksum: ' + '{:02X}'.format(sum(frame[2:]) & 0x0FF))
+            return False
+        return True
+        
+        
                 
+    def get_frame(self):
+        '''
+        Returns the oldest frame in the queue, or None.
+        '''
+        if (self.rx_queue.empty() == False):
+            return self.rx_queue.get(block=False)
+        else:
+            return None
+        
 
 if __name__ == '__main__':
     xb = XBee('/dev/xbee', 1200)
+    '''
     data = bytearray((b'ASDFLOL qwerty \x11 hello {}{}'))
     print(data)
     new = xb.escape(data)
     print(new)
     unescaped = xb.unescape(new)
     print(unescaped)
-    xb.tx('lol this uses the api{} heh asdfasdfasdf')
-    xb.rx()
-    print(xb.rx_queue)
+    '''
+    xb.tx('hello world')
+    while (xb.rx() == False):
+        time.sleep(1)
+    while(xb.rx_queue.qsize() > 0):
+        print(xb.get_frame())
