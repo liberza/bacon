@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <avr/io.h>
 #include <avr/interrupt.h>
+#include "pingpong.h"
 
 #define TX_ENABLE()         UCSR0B |= (1<<TXEN0)
 #define TX_DISABLE()        UCSR0B &= ~(1<<TXEN0)
@@ -37,7 +38,7 @@
 #define BUF_SIZE            512
 
 //! Buffer for serial RX interrupt service routine.
-extern uint8_t serial_rx_buffer[BUF_SIZE];
+extern pingpong_t *rx_buf;
 
 //! Initialize UART with the given parameters.
 uint8_t serial_init(uint16_t baudrate, //! baudrate (prescaled)

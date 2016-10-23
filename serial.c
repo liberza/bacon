@@ -1,14 +1,7 @@
 #include "serial.h"
 #include "pingpong.h"
 
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-
-uint8_t serial_rx_buf_index = 0;
-uint8_t serial_rx_buffer[BUF_SIZE];
-
-pingpong_t rx_buf;
+pingpong_t *rx_buf;
 
 uint8_t serial_init(uint16_t baudrate, uint8_t bits, uint8_t parity, uint8_t stop)
 {
