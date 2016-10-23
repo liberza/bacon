@@ -1,7 +1,7 @@
 CC=avr-gcc
 CFLAGS=-g -Os -Wall -mcall-prologues -mmcu=atmega328p
 OBJ2HEX=avr-objcopy
-TARGET=xbee
+TARGET=pingpong
 #ADFLAGS= -v -v -v -v    -p m88 -c avrispmkII -P usb
 ADFLAGS= -v -v -v -v -p atmega328p -c buspirate -P /dev/buspirate
 

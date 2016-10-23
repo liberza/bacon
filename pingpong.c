@@ -1,3 +1,5 @@
+#include "pingpong.h"
+#include <stdlib.h>
 
 pingpong_t* pingpong_create(uint16_t size)
 {
@@ -5,7 +7,7 @@ pingpong_t* pingpong_create(uint16_t size)
     pingpong_t *p = malloc(sizeof(pingpong_t));
     p->size = size;
     p->sel = 0;
-    p->buf = calloc(r->size*2, sizeof(uint8_t));
+    p->buf = calloc(p->size*2, sizeof(uint8_t));
     return p;
 }
 
