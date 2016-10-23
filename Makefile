@@ -1,13 +1,11 @@
 CC=avr-gcc
 CFLAGS=-g -Os -Wall -mcall-prologues -mmcu=atmega328p
 OBJ2HEX=avr-objcopy
-TARGET=serial
-#ADFLAGS= -v -v -v -v    -p m88 -c avrispmkII -P usb
+TARGET=bacon
+#OBJS=pingpong.o xbee.o serial.o
 ADFLAGS= -v -v -v -v -p atmega328p -c buspirate -P /dev/buspirate
 
-
 .PHONY: fuses prog erase
-
 
 prog : $(TARGET).hex $(TARGET).eeprom
 	avrdude $(ADFLAGS) -V -U flash:w:$(TARGET).hex:i
