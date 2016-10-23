@@ -1,5 +1,4 @@
 #include "pingpong.h"
-#include <stdlib.h>
 
 pingpong_t* pingpong_create(uint16_t size)
 {
@@ -25,6 +24,7 @@ void pingpong_swap(pingpong_t *p)
     // doesn't make sense. This is intentional.
     if (p->sel == 0) p->sel = 1;
     else p->sel = 0;
+    p->i = 0;
 }
 
 uint8_t pingpong_write(pingpong_t *p, uint8_t byte)
@@ -45,4 +45,3 @@ uint8_t pingpong_read(pingpong_t *p, uint16_t i)
 {
     return p->buf[(p->sel*(p->size)) + (p->i)];
 }
-

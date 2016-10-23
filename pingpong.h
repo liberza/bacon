@@ -2,6 +2,7 @@
 #define PINGPONG_H
 
 #include <stdint.h>
+#include <stdlib.h>
 
 #define WRITE_SUCCESS 0x00
 #define CHUNK_FULL 0x01
@@ -24,12 +25,12 @@ void pingpong_destroy(pingpong_t *p //! pingpong_t to destory
 
 //! Write a single byte to the pingpong_t.
 uint8_t pingpong_write(pingpong_t *p,  //! pingpong_t to write to
-                    uint8_t byte    //! byte to write
+                       uint8_t byte    //! byte to write
                     );
 
 //! Read one byte from selected chunk in pingpong_t, at index i.
 uint8_t pingpong_read(pingpong_t *p,   //! pingpong_t to read from
-                       uint16_t i       //! index to read at, within selected chunk
+                      uint16_t i       //! index to read at, within selected chunk
                        );
 
 #endif
