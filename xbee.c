@@ -3,7 +3,6 @@
 #include <avr/io.h>
 
 pingpong_t *rx_buf;
-uint8_t rx_buf_rdy = 0;
 
 uint8_t xbee_init()
 {
@@ -17,14 +16,13 @@ uint8_t rx()
 {
     uint16_t len;
     uint8_t *rx_chunk;
-    if (rx_buf_rdy)
+    if (rx_buf->ready)
     {
-        rx_buf_rdy = 0;
+        rx_buf->ready = 0;
         rx_chunk = pingpong_chunk_ptr(rx_buf);
         if (rx_chunk[0] != SPECIAL_BYTES.FRAME_DELIM)
         {
-            // invalid packet
-            while(0);
+            return -1;
         }
         unescape(rx_chunk, rx_buf->size);
         len = (rx_buf->buf[1] << 8) | rx_buf->buf[0];
@@ -72,7 +70,7 @@ ISR(USART_RX_vect)
     if (tmp == SPECIAL_BYTES.FRAME_DELIM)
     {
         pingpong_swap(rx_buf);
-        rx_buf_rdy = 1;
+        rx_buf->ready = 1;
     }
     pingpong_write(rx_buf, tmp);
 }

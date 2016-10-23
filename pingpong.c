@@ -7,6 +7,7 @@ pingpong_t* pingpong_create(uint16_t size)
     p->size = size;
     p->wsel = 0;
     p->rsel = 1;
+    p->ready = 0;
     p->buf = calloc(p->size*2, sizeof(uint8_t));
     return p;
 }
