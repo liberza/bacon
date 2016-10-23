@@ -6,17 +6,12 @@
 #include <stdlib.h>
 #include <avr/io.h>
 #include <avr/interrupt.h>
-#include "pingpong.h"
 
 #define TX_ENABLE()         UCSR0B |= (1<<TXEN0)
 #define TX_DISABLE()        UCSR0B &= ~(1<<TXEN0)
-#define TX_INT_ENABLE()     UCSR0B |= (1<<TXCIE0)
-#define TX_INT_DISABLE()    UCSR0B &= ~(1<<TXCIE0)
 
 #define RX_ENABLE()         UCSR0B |= (1<<RXEN0)
 #define RX_DISABLE()        UCSR0B &= ~(1<<RXEN0)
-#define RX_INT_ENABLE()     UCSR0B |= (1<<RXCIE0)
-#define RX_INT_DISABLE()    UCSR0B &= ~(1<<RXCIE0)
 
 #define DATA_BITS_5         (uint8_t)(0x00)
 #define DATA_BITS_6         (uint8_t)(1<<UCSZ00)
@@ -35,11 +30,6 @@
 #define STOP_BITS_ERR       (uint8_t)(0x2)
 #define PARITY_ERR          (uint8_t)(0x4)
 
-#define BUF_SIZE            512
-
-//! Buffer for serial RX interrupt service routine.
-extern pingpong_t *rx_buf;
-
 //! Initialize UART with the given parameters.
 uint8_t serial_init(uint16_t baudrate, //! baudrate (prescaled)
                     uint8_t bits,      //! data bits setting
@@ -52,8 +42,5 @@ uint8_t get_byte();
 
 //! Put a byte to the UART
 void put_byte(uint8_t byte);
-
-//! Interrupt service routine for handling UART RX
-ISR(USART_RX_vect);
 
 #endif

@@ -25,6 +25,10 @@ pingpong_t* pingpong_create(uint16_t size //! # bytes in one of two chunks.
 void pingpong_destroy(pingpong_t *p //! pingpong_t to destory
                       );
 
+//! Switch rsel and wsel
+void pingpong_swap(pingpong_t *p    //! pingpong_t for swapping
+                   );
+
 //! Write a single byte to the pingpong_t.
 uint8_t pingpong_write(pingpong_t *p,  //! pingpong_t to write to
                        uint8_t byte    //! byte to write
