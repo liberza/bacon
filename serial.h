@@ -34,7 +34,7 @@
 #define STOP_BITS_ERR       (uint8_t)(0x2)
 #define PARITY_ERR          (uint8_t)(0x4)
 
-#define BUF_SIZE            255
+#define BUF_SIZE            512
 
 //! Buffer for serial RX interrupt service routine.
 extern uint8_t serial_rx_buffer[BUF_SIZE];

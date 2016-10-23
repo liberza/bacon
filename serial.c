@@ -46,6 +46,6 @@ uint8_t serial_init(uint16_t baudrate, uint8_t bits, uint8_t parity, uint8_t sto
 
 ISR(USART_RX_vect)
 {
-	serial_rx_buffer[serial_rx_buf_index] = UDR0;
-	serial_rx_buf_index++;	
+    serial_rx_buffer[serial_rx_buf_index] = UDR0;
+    serial_rx_buf_index++;	
 }
