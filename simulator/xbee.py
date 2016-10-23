@@ -107,9 +107,35 @@ class XBee():
 
         return received
 
-    def parse_frame(self):
-        pass
-            
+    def parse_frame(self, frame):
+        for frametype, value in self.FRAME_TYPES.items():
+            if frame[2] == value:
+                break;
+        print(frame)
+
+        if (value == self.FRAME_TYPES['AT_RESP']):
+            pass
+        elif (value == self.FRAME_TYPES['MODEM_STATUS']):
+            pass
+        elif (value == self.FRAME_TYPES['TX_STATUS']):
+            pass
+        elif (value == self.FRAME_TYPES['ROUTE_INFO']):
+            pass
+        elif (value == self.FRAME_TYPES['RX']):
+            source = frame[3:10]
+            opts = frame[13]
+            data = frame[15:-1]
+            print(str(source))
+            print(str(data))
+        elif (value == self.FRAME_TYPES['EXPLICIT_RX']):
+            pass
+        elif (value == self.FRAME_TYPES['NODE_ID']):
+            pass
+        elif (value == self.FRAME_TYPES['REMOTE_RESP']):
+            pass
+        else:
+            raise Exception("Frame has invalid frame type.")
+
     def escape(self, data):
         escaped = bytearray()
         for byte in data:
@@ -127,6 +153,7 @@ class XBee():
         for i in q:
             if data[i] == self.SPECIAL_BYTES['ESCAPE']:
                 unescaped.append(data[i+1] ^ 0x20)
+                print('unescape: ' + str(i))
                 next(q, None) # skip the next iteration
             else:
                 unescaped.append(data[i])
@@ -148,8 +175,6 @@ class XBee():
             print('invalid checksum: ' + '{:02X}'.format(sum(frame[2:]) & 0x0FF))
             return False
         return True
-        
-        
                 
     def get_frame(self):
         '''
@@ -175,4 +200,4 @@ if __name__ == '__main__':
     while (xb.rx() == False):
         time.sleep(1)
     while(xb.rx_queue.qsize() > 0):
-        print(xb.get_frame())
+        xb.parse_frame(xb.get_frame())

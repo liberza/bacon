@@ -1,6 +1,12 @@
 #ifndef SERIAL_H
 #define SERIAL_H
 
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <avr/io.h>
+#include <avr/interrupt.h>
+
 #define TX_ENABLE()         UCSR0B |= (1<<TXEN0)
 #define TX_DISABLE()        UCSR0B &= ~(1<<TXEN0)
 #define TX_INT_ENABLE()     UCSR0B |= (1<<TXCIE0)
@@ -28,8 +34,10 @@
 #define STOP_BITS_ERR       (uint8_t)(0x2)
 #define PARITY_ERR          (uint8_t)(0x4)
 
+#define BUF_SIZE            255
+
 //! Buffer for serial RX interrupt service routine.
-extern uint8_t serial_rx_buffer;
+extern uint8_t serial_rx_buffer[BUF_SIZE];
 
 //! Initialize UART with the given parameters.
 uint8_t serial_init(uint16_t baudrate, //! baudrate (prescaled)
@@ -45,6 +53,6 @@ uint8_t get_byte();
 void put_byte(uint8_t byte);
 
 //! Interrupt service routine for handling UART RX
-void ISR(USART_RXC_vect);
+ISR(USART_RX_vect);
 
 #endif
