@@ -34,6 +34,10 @@ uint8_t pingpong_write(pingpong_t *p,  //! pingpong_t to write to
                        uint8_t byte    //! byte to write
                     );
 
+//! Return the index of the start of the chunk to be read.
+uint8_t* pingpong_chunk_ptr(pingpong_t *p   //! pingpong_t to read from
+                            );
+
 //! Read one byte from selected chunk in pingpong_t, at index i.
 uint8_t pingpong_read(pingpong_t *p,   //! pingpong_t to read from
                       uint16_t i       //! index to read at, within selected chunk
