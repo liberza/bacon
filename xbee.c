@@ -12,10 +12,10 @@ uint8_t xbee_init()
     return 0;
 }
 
-void ISR(USART_RX_vect)
+ISR(USART_RX_vect)
 {
     uint8_t tmp = UDR0;
-    if (tmp == (uint8_t)0x7D)
+    if (tmp == SPECIAL_BYTES.FRAME_DELIM)
     {
         pingpong_swap(rx_buf);
     }
