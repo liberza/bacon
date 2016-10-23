@@ -1,4 +1,5 @@
 #include "serial.h"
+#include "pingpong.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -6,6 +7,8 @@
 
 uint8_t serial_rx_buf_index = 0;
 uint8_t serial_rx_buffer[BUF_SIZE];
+
+pingpong_t rx_buf;
 
 uint8_t serial_init(uint16_t baudrate, uint8_t bits, uint8_t parity, uint8_t stop)
 {
@@ -33,6 +36,7 @@ uint8_t serial_init(uint16_t baudrate, uint8_t bits, uint8_t parity, uint8_t sto
     }
     if (!err)
     {
+        rx_buf = pingpong_create(BUF_SIZE);
         // Set register init values
         UBRR0H = baudrate >> 8;
         UBRR0L = baudrate;
@@ -40,12 +44,13 @@ uint8_t serial_init(uint16_t baudrate, uint8_t bits, uint8_t parity, uint8_t sto
         TX_ENABLE();
         RX_ENABLE();
         TX_INT_ENABLE();
+        RX_INT_ENABLE();
     }
     return err;
 }
 
 ISR(USART_RX_vect)
 {
-    serial_rx_buffer[serial_rx_buf_index] = UDR0;
-    serial_rx_buf_index++;	
+    uint8_t tmp = UDR0;
+    pingpong_write(rx_buf, tmp);
 }

@@ -22,16 +22,24 @@ void pingpong_swap(pingpong_t *p)
 {
     // This works even if p->sel is set to something that
     // doesn't make sense. This is intentional.
-    if (p->sel == 0) p->sel = 1;
-    else p->sel = 0;
+    if (p->wsel == 0)
+    {
+        p->wsel = 1;
+        p->rsel = 0;
+    }
+    else 
+    {
+        p->wsel = 0;
+        p->rsel = 1;
+    }
     p->i = 0;
 }
 
 uint8_t pingpong_write(pingpong_t *p, uint8_t byte)
 {
-    p->buf[(p->sel*(p->size)) + (p->i)] = byte;
-    if (p->i + 1 < p->size)
+    if (p->i < p->size)
     {
+        p->buf[(p->sel*(p->size)) + (p->i)] = byte;
         p->i++;
         return WRITE_SUCCESS;
     }
