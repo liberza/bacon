@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <avr/io.h>
 #include <avr/interrupt.h>
+#include "status.h"
 
 #define TX_ENABLE()         UCSR0B |= (1<<TXEN0)
 #define TX_DISABLE()        UCSR0B &= ~(1<<TXEN0)
@@ -25,10 +26,6 @@
 #define PARITY_DISABLED     (uint8_t)(0x00)
 #define PARITY_EVEN         (uint8_t)(1<<UPM01)
 #define PARITY_ODD          (uint8_t)((1<<UPM01)|(1<<UPM00))
-
-#define DATA_BITS_ERR       (uint8_t)(0x1)
-#define STOP_BITS_ERR       (uint8_t)(0x2)
-#define PARITY_ERR          (uint8_t)(0x4)
 
 //! Initialize UART with the given parameters.
 uint8_t serial_init(uint16_t baudrate, //! baudrate (prescaled)

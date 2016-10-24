@@ -51,7 +51,7 @@ uint8_t pingpong_write(pingpong_t *p, uint8_t byte)
 
 uint8_t* pingpong_chunk_ptr(pingpong_t *p)
 {
-    return &(p->buf) + (p->rsel)*(p->size);
+    return (uint8_t*)(&(p->buf) + (p->rsel)*(p->size));
 }
 
 uint8_t pingpong_read(pingpong_t *p, uint16_t i)
