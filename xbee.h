@@ -25,22 +25,18 @@
 extern pingpong_t *rx_buf;
 
 // Digimesh frame special characters.
-static struct
+struct special_bytes_t
 {
     uint8_t FRAME_DELIM;
     uint8_t ESCAPE;
     uint8_t XON;
     uint8_t XOFF;
-} SPECIAL_BYTES =
-{
-    .FRAME_DELIM = (uint8_t)0x7E,
-    .ESCAPE      = (uint8_t)0x7D,
-    .XON         = (uint8_t)0x11,
-    .XOFF        = (uint8_t)0x13
 };
 
+const static struct special_bytes_t SPECIAL_BYTES;
+
 //! Digimesh frame types.
-static struct 
+struct frame_types_t
 {
     uint8_t AT;
     uint8_t AT_QPV;
@@ -55,28 +51,18 @@ static struct
     uint8_t EXPLICIT_RX;
     uint8_t NODE_ID;
     uint8_t REMOTE_RESP;
-} FRAME_TYPES =
-{
-    .AT             = (uint8_t)0x08,
-    .AT_QPV         = (uint8_t)0x09,
-    .TX             = (uint8_t)0x10,
-    .EXPLICIT_TX    = (uint8_t)0x11,
-    .REMOTE         = (uint8_t)0x17,
-    .AT_RESP        = (uint8_t)0x88,
-    .MODEM_STATUS   = (uint8_t)0x8A,
-    .TX_STATUS      = (uint8_t)0x8B,
-    .ROUTE_INFO     = (uint8_t)0x8D,
-    .RX             = (uint8_t)0x90,
-    .EXPLICIT_RX    = (uint8_t)0x91,
-    .NODE_ID        = (uint8_t)0x95,
-    .REMOTE_RESP    = (uint8_t)0x97
 };
+
+const static struct frame_types_t FRAME_TYPES;
 
 struct frame
 {
     uint8_t type;
     uint8_t source;
 };
+
+//! Initialize buffer and interrupts
+void xbee_init();
 
 //! Receive a Digimesh frame, if available in the serial buffer.
 uint8_t rx();
