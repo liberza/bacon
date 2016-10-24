@@ -14,19 +14,15 @@ uint8_t xbee_init()
 
 uint8_t rx()
 {
-    uint16_t len;
-    uint8_t *rx_chunk;
+    uint16_t len;       // actual frame length
+    uint8_t *rx_chunk;  // pointer to the "read" chunk of rx_buf
     if (rx_buf->ready)
     {
         rx_buf->ready = 0;
         rx_chunk = pingpong_chunk_ptr(rx_buf);
-        if (rx_chunk[0] != SPECIAL_BYTES.FRAME_DELIM)
-        {
-            return -1;
-        }
         unescape(rx_chunk, rx_buf->size);
-        len = (rx_buf->buf[1] << 8) | rx_buf->buf[0];
-        return 1;
+        len = validate_frame(rx_chunk, rx_buf->size);
+        return len;
     }
     return 0;
 }
@@ -64,13 +60,52 @@ uint8_t escape(uint8_t *bytes, uint16_t size)
     return 0;
 }
 
+uint16_t validate_frame(uint8_t *bytes, uint16_t size)
+{
+    uint16_t ret = 0;
+    uint8_t sum = 0;
+    uint16_t len;
+    if (size < 5)
+    {
+        // too small to be a frame, early return
+    }
+    len = (bytes[1] << 8) | bytes[2];
+    // verify length
+    if (len >= size)
+    {
+        // error
+    }
+    else if (bytes[0] != SPECIAL_BYTES.FRAME_DELIM)
+    {
+        // error
+    }
+    else
+    {
+        // Sum the bytes after the length.
+        for (int i=3; i<len; i++)
+        {
+            sum += bytes[i];
+        }
+        // Make sure they add to 0xFF, including the checksum
+        if (sum != 0xFF)
+        {
+            ret = len;
+        }
+        else
+        {
+            // error
+        }
+    }
+    return ret;
+}
+
 ISR(USART_RX_vect)
 {
     uint8_t tmp = UDR0;
     if (tmp == SPECIAL_BYTES.FRAME_DELIM)
     {
-        pingpong_swap(rx_buf);
         rx_buf->ready = 1;
+        pingpong_swap(rx_buf);
     }
     pingpong_write(rx_buf, tmp);
 }
