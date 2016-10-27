@@ -22,7 +22,7 @@
 #define BUF_SIZE 256
 
 //! Buffer for serial RX interrupt service routne.
-extern pingpong_t *rx_buf;
+volatile extern pingpong_t *rx_buf;
 
 // Digimesh frame special characters.
 struct special_bytes_t

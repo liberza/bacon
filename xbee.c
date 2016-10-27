@@ -2,7 +2,7 @@
 #include "pingpong.h"
 #include <avr/io.h>
 
-pingpong_t *rx_buf;
+volatile pingpong_t *rx_buf;
 
 const static struct frame_types_t FRAME_TYPES =
 {
