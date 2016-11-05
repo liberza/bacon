@@ -55,12 +55,6 @@ struct frame_types_t
 
 const static struct frame_types_t FRAME_TYPES;
 
-struct frame
-{
-    uint8_t type;
-    uint8_t source;
-};
-
 //! Initialize buffer and interrupts
 void xbee_init();
 
@@ -68,7 +62,7 @@ void xbee_init();
 uint8_t rx();
 
 //! Transmit a Digimesh frame.
-uint8_t tx(uint8_t *frame);
+uint8_t tx(uint8_t *data, uint8_t psize, uint64_t dest, uint8_t opts);
 
 //! Issue an AT command to the XBee unit.
 uint8_t at();

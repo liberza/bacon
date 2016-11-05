@@ -1,8 +1,10 @@
 #include "xbee.h"
 #include "pingpong.h"
+#include "status.h"
+#include "serial.h"
 #include <avr/io.h>
 
-volatile pingpong_t *rx_buf;
+volatile struct pingpong_t *rx_buf;
 
 const static struct frame_types_t FRAME_TYPES =
 {
@@ -37,6 +39,60 @@ void xbee_init()
     RX_INT_ENABLE();
 }
 
+uint8_t tx(uint8_t *data, uint8_t dsize, uint64_t dest, uint8_t opts)
+{
+    uint8_t frame[BUF_SIZE];
+
+    // TX frame has 14 bytes overhead
+    // does not include delimiter or length
+    uint8_t fsize = dsize + 14;
+    uint8_t sum = 0;
+
+    // delim + len_high + len_low + fsize + checksum
+    // must fit in the buffer.
+    if ((fsize + 5) > BUF_SIZE)
+        return FRAME_SIZE_ERR;
+
+    frame[0] = 0x7E;
+    frame[1] = (uint8_t)(fsize >> 8);
+    frame[2] = (uint8_t)(fsize);
+    frame[3] = FRAME_TYPES.TX;
+    frame[4] = 0x01;
+    frame[5] = (uint8_t)(dest >> 56);
+    frame[6] = (uint8_t)(dest >> 48);
+    frame[7] = (uint8_t)(dest >> 40);
+    frame[8] = (uint8_t)(dest >> 32);
+    frame[9] = (uint8_t)(dest >> 24);
+    frame[10] = (uint8_t)(dest >> 16);
+    frame[11] = (uint8_t)(dest >> 8);
+    frame[12] = (uint8_t)(dest);
+    frame[13] = 0xFF;   // reserved
+    frame[14] = 0xFE;   // reserved
+    frame[15] = 0x00;   // broadcast radius (default 0x00 for radius=max hops)
+    frame[16] = opts;   // tx options (probably should just be 0x00)
+
+    // compute first part of checksum.
+    for (int i=3; i<17; i++)
+    {
+        sum += frame[i];
+    }
+
+    // append data and sum it
+    for (int i=0; i<dsize; i++)
+    {
+        frame[17 + i] = data[i];
+        sum += data[i];
+    }
+    // put checksum at the end
+    frame[fsize + 4] = sum;
+
+    // send it
+    for (int i=0; i < fsize + 5; i++)
+        put_byte(frame[i]);
+
+    return 0;
+}
+
 uint8_t rx()
 {
     uint16_t len;       // actual frame length
@@ -57,7 +113,8 @@ void unescape(uint8_t *bytes, uint16_t size)
     uint16_t i = 0;
     uint16_t j;
     // Stop if we reach the end of the null-terminated array,
-    // or if we reach the end of the array.
+    // or if we reach the end of the array. Nulls are from calloc,
+    // not the serial port.
     while ((bytes[i] != '\0') && (i < size))
     {
         // Check that we reached an escape byte.
@@ -65,23 +122,48 @@ void unescape(uint8_t *bytes, uint16_t size)
         {
             j = i;
             // shift the right side of byte array to the left.
-            while ((j != '\0') && (j+1 < size))
+            while ((bytes[j] != '\0') && (j+1 < size))
             {
                 bytes[j] = bytes[j+1];
                 j++;
             }
-            // Set last byte to null in case the chunk was full.
+            // Set last byte to null.
+            // FIXME: Should be bytes[j] = '\0' right?
             bytes[size - 1] = '\0';
 
             // Unescape the character.
             bytes[i] = bytes[i] ^ 0x20;
-            i++;
         }
+        i++;
     }
 }
 
 uint8_t escape(uint8_t *bytes, uint16_t size)
 {
+    uint16_t i = 0;
+    uint16_t j;
+
+    while ((bytes[i] != '\0') && (i < size))
+    {
+        if (bytes[i] == SPECIAL_BYTES.ESCAPE    ||
+            bytes[i] == SPECIAL_BYTES.XON       ||
+            bytes[i] == SPECIAL_BYTES.XOFF)
+        {
+            if (i + 1 == size) // can't add an escape char, buffer full
+                return FRAME_SIZE_ERR;
+            j = size - 1;
+            // shift right side of array to the right.
+            while (j > i)
+            {
+                bytes[j] = bytes[j - 1];
+                j--;
+            }
+            bytes[i] = SPECIAL_BYTES.ESCAPE;
+            bytes[i+1] = bytes[i+1] ^ 0x20;
+            i++; // make sure we increment i twice in this case.
+        }
+        i++;
+    }
     return 0;
 }
 
@@ -93,16 +175,17 @@ uint16_t validate_frame(uint8_t *bytes, uint16_t size)
     if (size < 5)
     {
         // too small to be a frame, early return
+        return FRAME_SIZE_ERR;
     }
     len = (bytes[1] << 8) | bytes[2];
     // verify length
     if (len >= size)
     {
-        // error
+        return FRAME_SIZE_ERR;
     }
     else if (bytes[0] != SPECIAL_BYTES.FRAME_DELIM)
     {
-        // error
+        return FRAME_DELIM_ERR;
     }
     else
     {
@@ -118,7 +201,7 @@ uint16_t validate_frame(uint8_t *bytes, uint16_t size)
         }
         else
         {
-            // error
+            return FRAME_SUM_ERR;
         }
     }
     return ret;
