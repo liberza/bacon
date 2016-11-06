@@ -6,6 +6,7 @@ void rbuf_shift(volatile rbuf_t *r, uint16_t shamt)
 {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
     {
+        //FIXME: check that this doesn't pass the end pointer.
         r->start = ((r->start - shamt) % (BUF_SIZE));
         if (r->start < 0)
             r->start += BUF_SIZE;
@@ -13,27 +14,29 @@ void rbuf_shift(volatile rbuf_t *r, uint16_t shamt)
 }
 
 //! Append a value to the buffer, moving the end index ahead by 1
-//! and moving the start index ahead by 1 if necessary.
+//! This will fill up to BUF_SIZE-1. One address will be empty to
+//! keep track of whether the buffer is full or empty.
 uint8_t rbuf_append(volatile rbuf_t *r, uint8_t x)
 {
+    uint16_t new_end;
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
     {
-        uint8_t ret = 0;
-        if (r->end + 1 != r->start)
+        new_end = (r->end + 1) % BUF_SIZE;
+        if (new_end != r->start)
         {
-            r->end = (r->end + 1) % BUF_SIZE;
             r->buf[r->end] = x;
-            ret = WRITE_SUCCESS;
+            r->end = new_end;
+            return WRITE_SUCCESS;
         }
         else
         {
-            ret = RBUF_FULL;
+            return RBUF_FULL;
         }
-        return ret;
     }
 }
 
 //! Write a value to index i of the buffer.
+//! If using this as a queue, never call this.
 void rbuf_write(volatile rbuf_t *r, uint8_t x, uint16_t i)
 {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
@@ -51,6 +54,8 @@ uint8_t rbuf_read(volatile rbuf_t *r, uint16_t i)
     }
 }
 
+//! Return the length of the buffer, or the distance between
+//! the start and end pointers.
 uint16_t rbuf_len(volatile rbuf_t *r)
 {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
@@ -58,6 +63,6 @@ uint16_t rbuf_len(volatile rbuf_t *r)
         if (rbuf->start <= rbuf->end)
             return rbuf->end - rbuf->start;
         else
-            return BUF_SIZE - rbuf->start + rbuf->end;
+            return BUF_SIZE - rbuf->start + rbuf->end; 
     }
 }
