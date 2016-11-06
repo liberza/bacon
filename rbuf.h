@@ -15,8 +15,8 @@ typedef struct {
     uint16_t end;
 } rbuf_t;
 
-void rbuf_append(rbuf_t *r,
-                 uint8_t x);
+uint8_t rbuf_append(rbuf_t *r,
+                    uint8_t x);
 
 void rbuf_write(rbuf_t *r,
                 uint8_t x,
@@ -27,5 +27,8 @@ uint8_t rbuf_read(rbuf_t *r,
 
 void rbuf_shift(rbuf_t *r,
                 int shamt);
+
+uint16_t rbuf_len(volatile rbuf_t *r);
+
 
 #endif

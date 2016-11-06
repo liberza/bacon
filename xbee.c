@@ -1,5 +1,5 @@
 #include "xbee.h"
-#include "pingpong.h"
+#include "rbuf.h"
 #include "status.h"
 #include "serial.h"
 #include <avr/io.h>
@@ -95,9 +95,11 @@ uint8_t tx(uint8_t *data, uint8_t dsize, uint64_t dest, uint8_t opts)
 }
 
 //! rx(frame) assumes frame has BUF_SIZE bytes allocated already.
+//! DO NOT use this if frame is unallocated.
 uint8_t* rx(uint8_t *frame)
 {
     // Add timeout here.
+    frame[0] == '\0';
     while (frame[0] == '\0')
         frame = find_frame(&rbuf, frame);
 
@@ -105,50 +107,49 @@ uint8_t* rx(uint8_t *frame)
     return frame;
 }
 
-uint8_t* find_frame(rbuf_t *r, uint8_t *frame)
+//! Checks the receive buffer for any potential frames. 
+//! Pass the output of this function to validate_frame()
+uint8_t* find_frame(volatile rbuf_t *r, uint8_t *frame)
 {
     uint16_t frame_len;
-    uint16_t data_len;
+    uint16_t buf_len;
     uint16_t i;
     // Check that the first byte is a frame delimiter.
     // If not, shift out bytes until we hit one.
     if (rbuf_read(r, 0) != SPECIAL_BYTES.FRAME_DELIM)
     {
+        // Find the first frame delimiter.
         for (i=1; i<BUF_SIZE; i++)
         {
-            if (rbuf_read(r[i]) == SPECIAL_BYTES.FRAME_DELIM)
+            if (rbuf_read(r, i) == SPECIAL_BYTES.FRAME_DELIM)
                 break;
         }
+        // This will shift up to the frame delimiter, or shift
+        // everything out if one was not found.
         rbuf_shift(r, i);
     }
 
     if (rbuf_read(r, 0) != SPECIAL_BYTES.FRAME_DELIM)
     {
-        // could not find frame delimiter. If the incoming packet is
-        // larger than BUF_SIZE, it will just get ignored.
-        return NULL;
+        // could not find frame delimiter.
+        return frame;
     }
 
     // Length, besides delimiter, length and checksum.
-    frame_len = (uint16_t)(rbuf_read(rbuf, i+1) << 8) | rbuf_read(rbuf, i+2) + 4;
-    if (rbuf->start <= rbuf->end)
-        data_len = rbuf->end - rbuf->start;
-    else
-        data_len = BUF_SIZE - rbuf->start + rbuf->end;
-    if (data_len >= frame_len)
+    frame_len = ((uint16_t)(rbuf_read(rbuf, i+1) << 8) | rbuf_read(rbuf, i+2)) + 4;
+    buf_len = rbuf_len(rbuf);
+
+    if (buf_len >= frame_len)
     {
+        // There are enough bytes to make this frame. Fill frame and return.
         for (int i=0; i < frame_len; i++)
         {
             frame[i] = rbuf_read(r, i);
         }
         rbuf_shift(r, frame_len);
     }
-    else
-    {
-        // Haven't received the full frame yet!
-        return NULL;
-    }
-    
+
+    return frame;
 }
 
 //! Loops through the frame, unescaping any escaped bytes.
@@ -213,30 +214,12 @@ uint8_t escape(uint8_t *bytes, uint16_t size)
     return 0;
 }
 
-uint8_t validate_frame(uint8_t *bytes, uint16_t size)
+uint8_t validate_frame(uint8_t *bytes)
 {
     uint8_t ret = 0;
     uint8_t sum = 0;
     uint16_t len;
-    if (size < 5)
-    {
-        // too small to be a frame, early return
-        return FRAME_SIZE_ERR;
-    }
     len = ((uint16_t)bytes[1] << 8) | bytes[2];
-    // verify length
-    if (len >= size)
-    {
-        drive_pins(0xFF);
-        _delay_ms(10);
-        drive_pins(bytes[1]);
-        _delay_ms(20);
-        drive_pins(0);
-        _delay_ms(20);
-        drive_pins(bytes[2]);
-        _delay_ms(20);
-        return FRAME_SIZE_ERR;
-    }
     else if (bytes[0] != SPECIAL_BYTES.FRAME_DELIM)
     {
         return FRAME_DELIM_ERR;
