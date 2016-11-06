@@ -3,6 +3,7 @@
 #include "status.h"
 #include "serial.h"
 #include <avr/io.h>
+#include <util/delay.h>
 
 volatile struct pingpong_t *rx_buf;
 
@@ -95,16 +96,25 @@ uint8_t tx(uint8_t *data, uint8_t dsize, uint64_t dest, uint8_t opts)
 
 uint8_t rx()
 {
-    uint16_t len;       // actual frame length
+    uint8_t ret;       // actual frame length
     uint8_t *rx_chunk;  // pointer to the "read" chunk of rx_buf
     if (rx_buf->ready)
     {
         rx_buf->ready = 0;
         rx_chunk = pingpong_chunk_ptr(rx_buf);
+        drive_pins(0xF0);
+        _delay_ms(10);
+        drive_pins(rx_chunk[1]);
+        _delay_ms(20);
+        drive_pins(0);
+        _delay_ms(20);
+        drive_pins(rx_chunk[2]);
+        _delay_ms(20);
         unescape(rx_chunk, rx_buf->size);
-        len = validate_frame(rx_chunk, rx_buf->size);
-        return len;
+        ret = validate_frame(rx_chunk, rx_buf->size);
+        drive_pins(ret);
     }
+    drive_pins(0);
     return 0;
 }
 
@@ -167,9 +177,9 @@ uint8_t escape(uint8_t *bytes, uint16_t size)
     return 0;
 }
 
-uint16_t validate_frame(uint8_t *bytes, uint16_t size)
+uint8_t validate_frame(uint8_t *bytes, uint16_t size)
 {
-    uint16_t ret = 0;
+    uint8_t ret = 0;
     uint8_t sum = 0;
     uint16_t len;
     if (size < 5)
@@ -177,10 +187,18 @@ uint16_t validate_frame(uint8_t *bytes, uint16_t size)
         // too small to be a frame, early return
         return FRAME_SIZE_ERR;
     }
-    len = (bytes[1] << 8) | bytes[2];
+    len = ((uint16_t)bytes[1] << 8) | bytes[2];
     // verify length
     if (len >= size)
     {
+        drive_pins(0xFF);
+        _delay_ms(10);
+        drive_pins(bytes[1]);
+        _delay_ms(20);
+        drive_pins(0);
+        _delay_ms(20);
+        drive_pins(bytes[2]);
+        _delay_ms(20);
         return FRAME_SIZE_ERR;
     }
     else if (bytes[0] != SPECIAL_BYTES.FRAME_DELIM)
@@ -195,9 +213,10 @@ uint16_t validate_frame(uint8_t *bytes, uint16_t size)
             sum += bytes[i];
         }
         // Make sure they add to 0xFF, including the checksum
-        if (sum != 0xFF)
+        if (sum == 0xFF)
         {
-            ret = len;
+            //ret = len;
+            ret = 0;
         }
         else
         {

@@ -22,16 +22,8 @@ void pingpong_destroy(pingpong_t *p)
 
 void pingpong_swap(pingpong_t *p)
 {
-    if (p->wsel == 0)
-    {
-        p->wsel = 1;
-        p->rsel = 0;
-    }
-    else 
-    {
-        p->wsel = 0;
-        p->rsel = 1;
-    }
+    p->wsel = !p->wsel;
+    p->rsel = !p->rsel;
     p->i = 0;
 }
 

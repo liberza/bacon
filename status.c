@@ -11,7 +11,7 @@ void status_pin_init()
     DDRD |= portd_out;
 }
 
-void set_status(uint8_t pins)
+void drive_pins(uint8_t pins)
 {
     if (pins & STATUS0)
         PORTC |= 1 << PC1;

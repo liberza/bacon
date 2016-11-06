@@ -7,14 +7,17 @@
 #define WRITE_SUCCESS 0x00
 #define CHUNK_FULL 0x01
 
+#define BUF_SIZE 256
+
 //! Pingpong buffer
 typedef struct pingpong_t
 {
-    uint8_t *buf;   //! buffer with size of size*2
-    uint16_t size;  //! size of one chunk
-    uint16_t i;     //! current byte index for pushing
-    uint8_t wsel;   //! (write) 0: select 1st chunk. 1: select 2nd chunk.
-    uint8_t rsel;   //! (read)  0: select 1st chunk. 1: select 2nd chunk.
+    uint8_t buf1[BUF_SIZE];
+    uint8_t buf2[BUF_SIZE];
+    uint8_t *rbuf;  // current read buffer
+    uint8_t *wbuf;  // current write buffer
+    uint16_t i;     //! current byte index for pushing to wbuf
+    uint8_t sel;    //! 0: 
     uint8_t ready;  //! 0: write chunk ready to be read 1: not ready
 } pingpong_t;
 

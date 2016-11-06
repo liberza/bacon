@@ -74,7 +74,7 @@ uint8_t escape(uint8_t *bytes, uint16_t size);
 //! Remove ESCAPE bytes and XOR special chars with 0x20.
 void unescape(uint8_t *bytes, uint16_t size);
 
-uint16_t validate_frame(uint8_t *bytes, uint16_t size);
+uint8_t validate_frame(uint8_t *bytes, uint16_t size);
 
 //! ISR for writing bytes and swapping buffers when frame delimiter received.
 ISR(USART_RX_vect);
