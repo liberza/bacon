@@ -55,7 +55,7 @@ struct frame_t
 {
     uint16_t len;
     uint8_t data[BUF_SIZE];
-}
+};
 
 const static struct frame_types_t FRAME_TYPES;
 
@@ -63,22 +63,21 @@ const static struct frame_types_t FRAME_TYPES;
 void xbee_init();
 
 //! Receive a Digimesh frame, if available in the serial buffer.
-uint8_t rx();
+uint8_t rx(uint8_t *frame);
 
 //! Transmit a Digimesh frame.
 uint8_t tx(uint8_t *data, uint8_t psize, uint64_t dest, uint8_t opts);
 
-//! Issue an AT command to the XBee unit.
-uint8_t at();
-
 //! Escape a sequence of bytes by XOR'ing special chars with 0x20 and
 //! adding the ESCAPE byte before the special char.
-uint8_t escape(uint8_t *bytes, uint16_t size);
+uint8_t escape(uint8_t *frame, uint16_t size);
 
 //! Remove ESCAPE bytes and XOR special chars with 0x20.
-void unescape(uint8_t *bytes, uint16_t size);
+void unescape(uint8_t *frame, uint16_t size);
 
-uint8_t validate_frame(uint8_t *bytes, uint16_t size);
+uint8_t validate_frame(uint8_t *frame, uint16_t size);
+
+uint8_t find_frame(volatile rbuf_t *r, uint8_t *frame);
 
 //! ISR for writing bytes and swapping buffers when frame delimiter received.
 ISR(USART_RX_vect);

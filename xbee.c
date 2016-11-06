@@ -5,7 +5,7 @@
 #include <avr/io.h>
 #include <util/delay.h>
 
-volatile struct rbuf_t rbuf;
+volatile rbuf_t rbuf;
 
 const static struct frame_types_t FRAME_TYPES =
 {
@@ -34,8 +34,8 @@ const static struct special_bytes_t SPECIAL_BYTES =
 
 void xbee_init()
 {
-    rbuf->start = 0;
-    rbuf->end = 0;
+    rbuf.start = 0;
+    rbuf.end = 0;
     TX_INT_ENABLE();
     RX_INT_ENABLE();
 }
@@ -96,24 +96,27 @@ uint8_t tx(uint8_t *data, uint8_t dsize, uint64_t dest, uint8_t opts)
 
 //! rx(frame) assumes frame has BUF_SIZE bytes allocated already.
 //! DO NOT use this if frame is unallocated.
-uint8_t* rx(uint8_t *frame)
+uint8_t rx(uint8_t *frame)
 {
+    uint8_t ret;
     // Add timeout here.
-    frame[0] == '\0';
-    while (frame[0] == '\0')
-        frame = find_frame(&rbuf, frame);
-
-    frame = validate_frame(frame);
-    return frame;
+    do
+    {
+        ret = find_frame(&rbuf, frame);
+    }
+    while (ret != 0);
+    return ret;
 }
 
 //! Checks the receive buffer for any potential frames. 
-//! Pass the output of this function to validate_frame()
-uint8_t* find_frame(volatile rbuf_t *r, uint8_t *frame)
+//! Try validation, and then shift out of the buffer if validated.
+//! It is important that no interrupts call rbuf_shift()
+//! while this function is executing.
+uint8_t find_frame(volatile rbuf_t *r, uint8_t *frame)
 {
-    uint16_t frame_len;
     uint16_t buf_len;
     uint16_t i;
+    uint8_t ret;
     // Check that the first byte is a frame delimiter.
     // If not, shift out bytes until we hit one.
     if (rbuf_read(r, 0) != SPECIAL_BYTES.FRAME_DELIM)
@@ -129,72 +132,65 @@ uint8_t* find_frame(volatile rbuf_t *r, uint8_t *frame)
         rbuf_shift(r, i);
     }
 
-    if (rbuf_read(r, 0) != SPECIAL_BYTES.FRAME_DELIM)
+    if (rbuf_read(r, 0) == SPECIAL_BYTES.FRAME_DELIM)
     {
-        // could not find frame delimiter.
-        return frame;
-    }
+        buf_len = rbuf_len(r);
 
-    // Length, besides delimiter, length and checksum.
-    frame_len = ((uint16_t)(rbuf_read(rbuf, i+1) << 8) | rbuf_read(rbuf, i+2)) + 4;
-    buf_len = rbuf_len(rbuf);
-
-    if (buf_len >= frame_len)
-    {
-        // There are enough bytes to make this frame. Fill frame and return.
-        for (int i=0; i < frame_len; i++)
+        for (int i=0; i < buf_len; i++)
         {
             frame[i] = rbuf_read(r, i);
         }
-        rbuf_shift(r, frame_len);
-    }
 
-    return frame;
+        unescape(frame, BUF_SIZE);
+        ret =  validate_frame(frame, BUF_SIZE);
+    }
+    else
+    {
+        // could not find frame delimiter.
+        ret = -2;
+    }
+    return ret;
 }
 
 //! Loops through the frame, unescaping any escaped bytes.
 //! Could be done in find_frame and save a loop, but let's see if
 //! that's necessary before premature optimization...
-void unescape(uint8_t *bytes, uint16_t size)
+void unescape(uint8_t *frame, uint16_t size)
 {
-    uint16_t i = 0;
+    uint16_t i = 1;
     uint16_t j;
-    // Stop if we reach the end of the null-terminated array,
-    // or if we reach the end of the array. Nulls are from calloc,
-    // not the serial port.
-    while ((bytes[i] != '\0') && (i < size))
+    // stop if we reach the end of the array. 
+    while (i < size)
     {
         // Check that we reached an escape byte.
-        if (bytes[i] == SPECIAL_BYTES.ESCAPE)
+        if (frame[i] == SPECIAL_BYTES.ESCAPE)
         {
             j = i;
             // shift the right side of byte array to the left.
-            while ((bytes[j] != '\0') && (j+1 < size))
+            while (j+1 < size)
             {
-                bytes[j] = bytes[j+1];
+                frame[j] = frame[j+1];
                 j++;
             }
-            // Set last byte to null.
-            // FIXME: Should be bytes[j] = '\0' right?
-            bytes[size - 1] = '\0';
 
             // Unescape the character.
-            bytes[i] = bytes[i] ^ 0x20;
+            frame[i] = frame[i] ^ 0x20;
         }
         i++;
     }
 }
 
-uint8_t escape(uint8_t *bytes, uint16_t size)
+uint8_t escape(uint8_t *frame, uint16_t size)
 {
-    uint16_t i = 0;
+    uint16_t i = 1;
     uint16_t j;
 
-    while ((bytes[i] != '\0') && (i < size))
+    while (i < size)
     {
-        if (bytes[i] == SPECIAL_BYTES.ESCAPE    ||
-            bytes[i] == SPECIAL_BYTES.XON       ||
-            bytes[i] == SPECIAL_BYTES.XOFF)
+        if (frame[i] == SPECIAL_BYTES.FRAME_DELIM ||
+            frame[i] == SPECIAL_BYTES.ESCAPE      ||
+            frame[i] == SPECIAL_BYTES.XON         ||
+            frame[i] == SPECIAL_BYTES.XOFF)
         {
             if (i + 1 == size) // can't add an escape char, buffer full
                 return FRAME_SIZE_ERR;
@@ -202,11 +198,11 @@ uint8_t escape(uint8_t *bytes, uint16_t size)
             // shift right side of array to the right.
             while (j > i)
             {
-                bytes[j] = bytes[j - 1];
+                frame[j] = frame[j - 1];
                 j--;
             }
-            bytes[i] = SPECIAL_BYTES.ESCAPE;
-            bytes[i+1] = bytes[i+1] ^ 0x20;
+            frame[i] = SPECIAL_BYTES.ESCAPE;
+            frame[i+1] = frame[i+1] ^ 0x20;
             i++; // make sure we increment i twice in this case.
         }
         i++;
@@ -214,13 +210,18 @@ uint8_t escape(uint8_t *bytes, uint16_t size)
     return 0;
 }
 
-uint8_t validate_frame(uint8_t *bytes)
+//! Check the checksum. 
+uint8_t validate_frame(uint8_t *frame, uint16_t size)
 {
     uint8_t ret = 0;
     uint8_t sum = 0;
     uint16_t len;
-    len = ((uint16_t)bytes[1] << 8) | bytes[2];
-    else if (bytes[0] != SPECIAL_BYTES.FRAME_DELIM)
+    len = ((uint16_t)frame[1] << 8) | frame[2];
+    if (len >= BUF_SIZE)
+    {
+        return FRAME_SIZE_ERR;
+    }
+    else if (frame[0] != SPECIAL_BYTES.FRAME_DELIM)
     {
         return FRAME_DELIM_ERR;
     }
@@ -229,15 +230,10 @@ uint8_t validate_frame(uint8_t *bytes)
         // Sum the bytes after the length.
         for (int i=3; i<len; i++)
         {
-            sum += bytes[i];
+            sum += frame[i];
         }
         // Make sure they add to 0xFF, including the checksum
-        if (sum == 0xFF)
-        {
-            //ret = len;
-            ret = 0;
-        }
-        else
+        if (sum != 0xFF)
         {
             return FRAME_SUM_ERR;
         }
@@ -248,11 +244,6 @@ uint8_t validate_frame(uint8_t *bytes)
 ISR(USART_RX_vect)
 {
     uint8_t tmp = UDR0;
-    if (tmp == SPECIAL_BYTES.FRAME_DELIM)
-    {
-        rx_buf->ready = 1;
-        pingpong_swap(rx_buf);
-    }
-    pingpong_write(rx_buf, tmp);
+    rbuf_append(&rbuf, tmp);
 }
 
