@@ -5,7 +5,7 @@
 #include <avr/io.h>
 #include <util/delay.h>
 
-volatile struct pingpong_t *rx_buf;
+volatile struct rbuf_t rbuf;
 
 const static struct frame_types_t FRAME_TYPES =
 {
@@ -24,7 +24,6 @@ const static struct frame_types_t FRAME_TYPES =
     .REMOTE_RESP    = (uint8_t)0x97
 };
 
-
 const static struct special_bytes_t SPECIAL_BYTES =
 {
     .FRAME_DELIM = (uint8_t)0x7E,
@@ -35,7 +34,8 @@ const static struct special_bytes_t SPECIAL_BYTES =
 
 void xbee_init()
 {
-    rx_buf = pingpong_create(BUF_SIZE);
+    rbuf->start = 0;
+    rbuf->end = 0;
     TX_INT_ENABLE();
     RX_INT_ENABLE();
 }
@@ -94,30 +94,66 @@ uint8_t tx(uint8_t *data, uint8_t dsize, uint64_t dest, uint8_t opts)
     return 0;
 }
 
-uint8_t rx()
+//! rx(frame) assumes frame has BUF_SIZE bytes allocated already.
+uint8_t* rx(uint8_t *frame)
 {
-    uint8_t ret;       // actual frame length
-    uint8_t *rx_chunk;  // pointer to the "read" chunk of rx_buf
-    if (rx_buf->ready)
-    {
-        rx_buf->ready = 0;
-        rx_chunk = pingpong_chunk_ptr(rx_buf);
-        drive_pins(0xF0);
-        _delay_ms(10);
-        drive_pins(rx_chunk[1]);
-        _delay_ms(20);
-        drive_pins(0);
-        _delay_ms(20);
-        drive_pins(rx_chunk[2]);
-        _delay_ms(20);
-        unescape(rx_chunk, rx_buf->size);
-        ret = validate_frame(rx_chunk, rx_buf->size);
-        drive_pins(ret);
-    }
-    drive_pins(0);
-    return 0;
+    // Add timeout here.
+    while (frame[0] == '\0')
+        frame = find_frame(&rbuf, frame);
+
+    frame = validate_frame(frame);
+    return frame;
 }
 
+uint8_t* find_frame(rbuf_t *r, uint8_t *frame)
+{
+    uint16_t frame_len;
+    uint16_t data_len;
+    uint16_t i;
+    // Check that the first byte is a frame delimiter.
+    // If not, shift out bytes until we hit one.
+    if (rbuf_read(r, 0) != SPECIAL_BYTES.FRAME_DELIM)
+    {
+        for (i=1; i<BUF_SIZE; i++)
+        {
+            if (rbuf_read(r[i]) == SPECIAL_BYTES.FRAME_DELIM)
+                break;
+        }
+        rbuf_shift(r, i);
+    }
+
+    if (rbuf_read(r, 0) != SPECIAL_BYTES.FRAME_DELIM)
+    {
+        // could not find frame delimiter. If the incoming packet is
+        // larger than BUF_SIZE, it will just get ignored.
+        return NULL;
+    }
+
+    // Length, besides delimiter, length and checksum.
+    frame_len = (uint16_t)(rbuf_read(rbuf, i+1) << 8) | rbuf_read(rbuf, i+2) + 4;
+    if (rbuf->start <= rbuf->end)
+        data_len = rbuf->end - rbuf->start;
+    else
+        data_len = BUF_SIZE - rbuf->start + rbuf->end;
+    if (data_len >= frame_len)
+    {
+        for (int i=0; i < frame_len; i++)
+        {
+            frame[i] = rbuf_read(r, i);
+        }
+        rbuf_shift(r, frame_len);
+    }
+    else
+    {
+        // Haven't received the full frame yet!
+        return NULL;
+    }
+    
+}
+
+//! Loops through the frame, unescaping any escaped bytes.
+//! Could be done in find_frame and save a loop, but let's see if
+//! that's necessary before premature optimization...
 void unescape(uint8_t *bytes, uint16_t size)
 {
     uint16_t i = 0;

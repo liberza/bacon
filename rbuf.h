@@ -1,7 +1,13 @@
 #ifndef RBUF_H
 #define RBUF_H
 
+#include <stdint.h>
+#include <stdlib.h>
+
 #define BUF_SIZE 256
+
+#define WRITE_SUCCESS 0x00
+#define BUF_FULL 0x01
 
 typedef struct {
     uint8_t buf[BUF_SIZE];
@@ -21,3 +27,5 @@ uint8_t rbuf_read(rbuf_t *r,
 
 void rbuf_shift(rbuf_t *r,
                 int shamt);
+
+#endif

@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 #include <avr/interrupt.h>
-#include "pingpong.h"
+#include "rbuf.h"
 
 #define TX_INT_ENABLE()     UCSR0B |= (1<<TXCIE0)
 #define TX_INT_DISABLE()    UCSR0B &= ~(1<<TXCIE0)
@@ -19,10 +19,8 @@
 #define PAYLOAD_0H  0x0000beef
 #define PAYLOAD_0L  0x0000cafe
 
-#define BUF_SIZE 256
-
 //! Buffer for serial RX interrupt service routne.
-volatile extern pingpong_t *rx_buf;
+volatile extern rbuf_t rbuf;
 
 // Digimesh frame special characters.
 struct special_bytes_t
@@ -52,6 +50,12 @@ struct frame_types_t
     uint8_t NODE_ID;
     uint8_t REMOTE_RESP;
 };
+
+struct frame_t
+{
+    uint16_t len;
+    uint8_t data[BUF_SIZE];
+}
 
 const static struct frame_types_t FRAME_TYPES;
 
