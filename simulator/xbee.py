@@ -103,8 +103,9 @@ class XBee():
         self.rx_buf.extend(self.serial.read(num_bytes))
         sequence = self.rx_buf.split(bytes(b'\x7E'))        
         for s in sequence:
-            if (self.validate_frame(s)):
-                self.rx_queue.put(s, self.BUF_FULL_TIMEOUT)
+            frame = self.validate_frame(s)
+            if (frame):
+                self.rx_queue.put(frame, self.BUF_FULL_TIMEOUT)
                 received = True
 
         if (received == True):
@@ -117,7 +118,7 @@ class XBee():
         for frametype, value in self.FRAME_TYPES.items():
             if frame[2] == value:
                 break;
-        print(frame)
+        #print(frame)
 
         if (value == self.FRAME_TYPES['AT_RESP']):
             pass
@@ -185,7 +186,7 @@ class XBee():
         if ((sum(frame[2:]) & 0x0FF) != 0xFF):
             print('invalid checksum: ' + '{:02X}'.format(sum(frame[2:]) & 0x0FF))
             return False
-        return True
+        return frame
                 
     def get_frame(self):
         '''
@@ -207,8 +208,10 @@ if __name__ == '__main__':
     unescaped = xb.unescape(new)
     print(unescaped)
     '''
-    r = xb.rx()
-    while (r == None):
+    while(True):
         r = xb.rx()
+        while (r == None):
+            r = xb.rx()
 
-    print(r)
+        #print(r)
+        xb.parse_frame(r)
