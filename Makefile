@@ -4,7 +4,7 @@
 ##########------------------------------------------------------##########
 
 MCU   = atmega328p
-F_CPU = 1000000UL  
+F_CPU = 8000000UL  
 BAUD  = 9600UL
 ## Also try BAUD = 19200 or 38400 if you're feeling lucky.
 
@@ -120,7 +120,9 @@ squeaky_clean:
 ##########------------------------------------------------------##########
 
 flash: $(TARGET).hex 
+	./rst.py
 	$(AVRDUDE) -c $(PROGRAMMER_TYPE) -p $(MCU) $(PROGRAMMER_ARGS) -U flash:w:$<
+	./pwr.py
 
 ## An alias
 program: flash

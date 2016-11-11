@@ -9,6 +9,10 @@ class Flight():
     to get interpolated data.
     '''
 
+    addr = None
+    time_elapsed = 0.0
+    time_launched = 0.0
+
     def __init__(self, filename, mass):
         self.parse_profile(filename)
         self.mass = mass
@@ -24,14 +28,14 @@ class Flight():
         self.timestep = profile['timestep']
         self.times = np.arange(0, self.alts.size*self.timestep, self.timestep)
 
-    def alt(self, s):
+    def alt(self):
         '''
         Returns the altitude at the desired time.
         s is the time in seconds, with 0 being the beginning
         of the flight.
         '''
 
-        index = s / self.timestep
+        index = self.time_elapsed / self.timestep
 
         # alt = None if seconds is outside of the flight time.
         if (index > self.alts.size):
@@ -48,27 +52,37 @@ class Flight():
             
 if __name__ == '__main__':
     # initialize Flights. 'PAYLOAD_X_ID' is the digimesh ID of payload X.
-    fp1 = Flight('profiles/umhab48.json', 'PAYLOAD_1_ID')
-    fp2 = Flight('profiles/umhab48.json', 'PAYLOAD_2_ID')
-    fp1.mass = 5 # kg
-    fp2.mass = 4 # kg
+    fp1 = Flight('profiles/umhab48.json', 5) #5 kg
+    fp2 = Flight('profiles/umhab48.json', 4) #4 kg
     xbee = XBee.init('/dev/xbee', ‘1200’)  # initialize serial for XBee, 1200baud
-    timestep = 5    # transmit altitude every 5 seconds
     ft = 0      # flight time starts at 0
+    cur_payload = None
     while(True):
         # Wait for payloads to request an altitude, send it, and update the
         # payload’s mass. Add noise into the system for realistic simulation.
-        if (alt_request(fp1)):
-            XBee.sendAlt(fp1.id, fp1.adj_alt(ft))
-            fp1.mass -= XBee.getBallastDropped(fp1.id)*mass_noise()
-            ft += timestep
-        elif (alt_request(fp2)):
-            XBee.sendAlt(fp2.id, fp2.adj_alt(ft))
-            fp2.mass -= XBee.getBallastDropped(fp2.id)*mass_noise()
-            ft += timestep
+        req = alt_request_wait();
+        if ((req.addr != fp1.addr) and (req.addr != fp2.addr)):
+            if (fp1.addr == None):
+                fp1.addr = req.addr
+                cur_payload = fp1
+            else if (fp2.addr == None):
+                fp2.addr = req.addr
+                cur_payload = fp2
+            else:
+                print('Got another XBee\'s frame. Maybe change the network id.')
 
+        elif (req.addr == fp1.addr):
+            print('got a fp1 alt request')
+            cur_payload = fp1
+        else:
+            print('got a fp2 alt request')
+            cur_payload = fp2
 
+        XBee.sendAlt(cur_payload.addr, cur_payload.alt())
 
+        fp1.mass -= XBee.getBallastDropped(fp1.id)*mass_noise()
+
+        ft += timestep
 
     print(fp.timestep)
     print(fp.alts)

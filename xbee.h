@@ -11,13 +11,13 @@
 #define RX_INT_ENABLE()     UCSR0B |= (1<<RXCIE0)
 #define RX_INT_DISABLE()    UCSR0B &= ~(1<<RXCIE0)
 
-// XBee node IDs
-#define SIM_H       0x0000ba53
-#define SIM_L       0x0000ba11
-#define PAYLOAD_1H  0x00001337
-#define PAYLOAD_1L  0x0000dead
-#define PAYLOAD_0H  0x0000beef
-#define PAYLOAD_0L  0x0000cafe
+#define STATUS_RX (uint8_t)(0x01)
+#define STATUS_FIND_FRAME (uint8_t)(0x02)
+#define STATUS_ESCAPE (uint8_t)(0x03)
+#define STATUS_VALIDATE_FRAME (uint8_t)(0x04)
+#define FRAME_SIZE_ERR (uint8_t)(0x01)
+#define FRAME_DELIM_ERR (uint8_t)(0x02)
+#define FRAME_SUM_ERR (uint8_t)(0x04)
 
 //! Buffer for serial RX interrupt service routne.
 volatile extern rbuf_t rbuf;

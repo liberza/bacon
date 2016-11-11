@@ -12,9 +12,9 @@
 #define OOM_ERR         (uint8_t)(0x08)
 
 // Frame errors
-#define FRAME_SIZE_ERR  (uint8_t)(0x10)
-#define FRAME_DELIM_ERR (uint8_t)(0x20)
-#define FRAME_SUM_ERR   (uint8_t)(0x40)
+#define FRAME_SIZE_ERR  (uint8_t)(0x01)
+#define FRAME_DELIM_ERR (uint8_t)(0x02)
+#define FRAME_SUM_ERR   (uint8_t)(0x04)
 
 #define STATUS0         (uint8_t)(0x01)
 #define STATUS1         (uint8_t)(0x02)
@@ -24,10 +24,13 @@
 #define STATUS5         (uint8_t)(0x20)
 #define STATUS6         (uint8_t)(0x40)
 #define STATUS7         (uint8_t)(0x80)
+#define STATUS_CLR      (uint8_t)(0x00)
 
 //! Initialize GPIO for outputting error values.
 void status_pin_init();
 
-void drive_pins(uint8_t pins);
+void status_or(uint8_t pins);
+
+void status(uint8_t pins);
 
 #endif
