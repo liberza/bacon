@@ -136,6 +136,11 @@ class XBee():
             print(str(data))
         elif (value == self.FRAME_TYPES['EXPLICIT_RX']):
             pass
+        elif (value == self.FRAME_TYPES['TX']):
+            source = frame[5:12]
+            data = frame[16:-1]
+            print(str(source))
+            print(str(data))
         elif (value == self.FRAME_TYPES['NODE_ID']):
             pass
         elif (value == self.FRAME_TYPES['REMOTE_RESP']):
@@ -185,6 +190,7 @@ class XBee():
         # check checksum
         if ((sum(frame[2:]) & 0x0FF) != 0xFF):
             print('invalid checksum: ' + '{:02X}'.format(sum(frame[2:]) & 0x0FF))
+            print(frame)
             return False
         return frame
                 

@@ -87,7 +87,7 @@ uint8_t tx(uint8_t *data, uint8_t dsize, uint64_t dest, uint8_t opts)
         sum += data[i];
     }
     // put checksum at the end
-    frame[fsize + 4] = sum;
+    frame[fsize + 3] = 0xFF - sum;
 
     // send it
     for (int i=0; i < fsize + 5; i++)
@@ -145,11 +145,8 @@ uint8_t find_frame(volatile rbuf_t *r, uint8_t *frame)
         }
 
         unescape(frame, BUF_SIZE);
-        for (int i=0; i < buf_len; i++)
-        {
-            put_byte(frame[i]);
-        }
         ret =  validate_frame(frame, BUF_SIZE);
+        tx(&ret, 1, 0x000000000000FFFF, 0x00);
     }
     else
     {
@@ -240,7 +237,7 @@ uint8_t validate_frame(uint8_t *frame, uint16_t size)
             sum += frame[i];
         }
         // Make sure they add to 0xFF, including the checksum
-        if (sum != 0xFF)
+        if ((uint8_t)(sum & 0xFF) != (uint8_t)0xFF)
         {
             return FRAME_SUM_ERR;
         }
