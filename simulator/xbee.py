@@ -131,7 +131,7 @@ class XBee():
         elif (value == self.FRAME_TYPES['RX']):
             source = frame[3:10]
             opts = frame[13]
-            data = frame[15:-1]
+            data = frame[14:-1]
             print(str(source))
             print(str(data))
         elif (value == self.FRAME_TYPES['EXPLICIT_RX']):
@@ -212,6 +212,7 @@ if __name__ == '__main__':
         r = xb.rx()
         while (r == None):
             r = xb.rx()
+        time.sleep(1)
 
         #print(r)
         xb.parse_frame(r)

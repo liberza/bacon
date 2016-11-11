@@ -142,10 +142,13 @@ uint8_t find_frame(volatile rbuf_t *r, uint8_t *frame)
         for (int i=0; i < buf_len; i++)
         {
             frame[i] = rbuf_read(r, i);
-            put_byte(frame[i]);
         }
 
         unescape(frame, BUF_SIZE);
+        for (int i=0; i < buf_len; i++)
+        {
+            put_byte(frame[i]);
+        }
         ret =  validate_frame(frame, BUF_SIZE);
     }
     else
