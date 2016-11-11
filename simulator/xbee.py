@@ -33,6 +33,8 @@ class XBee():
 
     rx_queue = queue.Queue()
 
+    rx_buf = bytearray()
+
     def __init__(self, devfile, baud):
         self.serial = serial.Serial(port=devfile, 
                                     baudrate=baud,
@@ -98,14 +100,18 @@ class XBee():
         '''
         received = False
         num_bytes = self.serial.in_waiting
-        incoming = self.serial.read(num_bytes)
-        sequence = incoming.split(bytes(b'\x7E'))        
+        self.rx_buf.extend(self.serial.read(num_bytes))
+        sequence = self.rx_buf.split(bytes(b'\x7E'))        
         for s in sequence:
             if (self.validate_frame(s)):
                 self.rx_queue.put(s, self.BUF_FULL_TIMEOUT)
                 received = True
 
-        return received
+        if (received == True):
+            return self.rx_queue.get()
+
+        else:
+            return None
 
     def parse_frame(self, frame):
         for frametype, value in self.FRAME_TYPES.items():
@@ -152,9 +158,12 @@ class XBee():
         q = iter(range(len(data)))
         for i in q:
             if data[i] == self.SPECIAL_BYTES['ESCAPE']:
-                unescaped.append(data[i+1] ^ 0x20)
-                print('unescape: ' + str(i))
-                next(q, None) # skip the next iteration
+                if (i+1 < len(data)):
+                    unescaped.append(data[i+1] ^ 0x20)
+                    next(q, None) # skip the next iteration
+                else:
+                    return False
+            
             else:
                 unescaped.append(data[i])
         return unescaped
@@ -162,13 +171,15 @@ class XBee():
     def validate_frame(self, frame):
         # do frame validation here...
         frame = self.unescape(frame)
+        if (frame == False):
+            return False
         if (len(frame) < 5):
             # already know this isn't a valid frame: not enough overhead
             return False
         frame_len = (frame[0] << 8) | frame[1]
         # make sure frame length is accurate
         if (len(frame[2:-1]) != frame_len):
-            print('invalid len 2: ' + str(len(frame[2:-1])) + ' act: ' + str(frame_len))
+            #print('invalid len 2: ' + str(len(frame[2:-1])) + ' act: ' + str(frame_len))
             return False
         # check checksum
         if ((sum(frame[2:]) & 0x0FF) != 0xFF):
@@ -187,7 +198,7 @@ class XBee():
         
 
 if __name__ == '__main__':
-    xb = XBee('/dev/xbee', 1200)
+    xb = XBee('/dev/ttyUSB1', 1200)
     '''
     data = bytearray((b'ASDFLOL qwerty \x11 hello {}{}'))
     print(data)
@@ -196,8 +207,8 @@ if __name__ == '__main__':
     unescaped = xb.unescape(new)
     print(unescaped)
     '''
-    xb.tx('hello world')
-    while (xb.rx() == False):
-        time.sleep(1)
-    while(xb.rx_queue.qsize() > 0):
-        xb.parse_frame(xb.get_frame())
+    r = xb.rx()
+    while (r == None):
+        r = xb.rx()
+
+    print(r)

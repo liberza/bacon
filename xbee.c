@@ -104,9 +104,8 @@ uint8_t rx(uint8_t *frame)
     // Add timeout here.
     do
     {
-        status_or(STATUS0);
         ret = find_frame(&rbuf, frame);
-        status(STATUS_CLR);
+        status(ret);
     }
     while (ret != 0);
     return ret;
@@ -121,12 +120,10 @@ uint8_t find_frame(volatile rbuf_t *r, uint8_t *frame)
     uint16_t buf_len;
     uint16_t i;
     uint8_t ret;
-    status_or(STATUS1);
     // Check that the first byte is a frame delimiter.
     // If not, shift out bytes until we hit one.
     if (rbuf_read(r, 0) != SPECIAL_BYTES.FRAME_DELIM)
     {
-        status_or(STATUS2);
         // Find the first frame delimiter.
         for (i=1; i<BUF_SIZE; i++)
         {
@@ -145,9 +142,9 @@ uint8_t find_frame(volatile rbuf_t *r, uint8_t *frame)
         for (int i=0; i < buf_len; i++)
         {
             frame[i] = rbuf_read(r, i);
+            put_byte(frame[i]);
         }
 
-        status_or(STATUS3);
         unescape(frame, BUF_SIZE);
         ret =  validate_frame(frame, BUF_SIZE);
     }
@@ -156,7 +153,6 @@ uint8_t find_frame(volatile rbuf_t *r, uint8_t *frame)
         // could not find frame delimiter.
         ret = -2;
     }
-    status_or(STATUS6);
     return ret;
 }
 
@@ -167,7 +163,6 @@ void unescape(uint8_t *frame, uint16_t size)
 {
     uint16_t i = 1;
     uint16_t j;
-    status_or(STATUS4);
     // stop if we reach the end of the array. 
     while (i < size)
     {
@@ -225,7 +220,6 @@ uint8_t validate_frame(uint8_t *frame, uint16_t size)
     uint8_t ret = 0;
     uint8_t sum = 0;
     uint16_t len;
-    status_or(STATUS5);
     len = ((uint16_t)frame[1] << 8) | frame[2];
     if (len >= BUF_SIZE)
     {
