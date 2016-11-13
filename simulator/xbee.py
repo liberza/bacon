@@ -2,6 +2,7 @@
 import serial
 import queue
 import time
+import binascii
 
 # class for managing XBee API mode 
 class XBee():
@@ -137,8 +138,7 @@ class XBee():
             source = frame[3:10]
             opts = frame[13]
             data = frame[14:-1]
-            print(str(source))
-            print(str(data))
+            return data
         elif (value == self.FRAME_TYPES['EXPLICIT_RX']):
             pass
         elif (value == self.FRAME_TYPES['TX']):
@@ -224,6 +224,11 @@ if __name__ == '__main__':
         r = xb.rx()
         while (r == None):
             r = xb.rx()
-
-        print(r)
+        h = binascii.hexlify(r[16:-1])
+        q = [h[i:i+2] for i in range(0, len(h), 2)]
+        c = ""
+        for d in q:
+            c += " " + d.decode()
+        print(c)
+        print("---")
         #xb.parse_frame(r)

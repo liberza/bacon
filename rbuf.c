@@ -18,19 +18,16 @@ uint8_t rbuf_append(volatile rbuf_t *r, uint8_t x)
 {
     uint16_t new_end;
     uint8_t ret = 3;
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+    new_end = (r->end + 1) % MAX_BUF_SIZE;
+    if (new_end != r->start)
     {
-        new_end = (r->end + 1) % MAX_BUF_SIZE;
-        if (new_end != r->start)
-        {
-            r->buf[r->end] = x;
-            r->end = new_end;
-            ret = RBUF_WRITE_SUCCESS;
-        }
-        else
-        {
-            ret = RBUF_FULL;
-        }
+        r->buf[r->end] = x;
+        r->end = new_end;
+        ret = RBUF_WRITE_SUCCESS;
+    }
+    else
+    {
+        ret = RBUF_FULL;
     }
     return ret;
 }

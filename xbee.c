@@ -4,6 +4,7 @@
 #include "serial.h"
 #include <avr/io.h>
 #include <util/delay.h>
+#include <util/atomic.h>
 
 volatile rbuf_t rbuf;
 uint8_t func_code = 0x00;
@@ -38,13 +39,17 @@ void xbee_init()
 {
     rbuf.start = 0;
     rbuf.end = 0;
+    // clear the buffer when initializing
+    for (int i=0; i < MAX_BUF_SIZE; i++)
+        rbuf.buf[i] = 0;
     /* TX_INT_ENABLE(); */
     RX_INT_ENABLE();
 }
 
 uint8_t tx(uint8_t *data, uint16_t data_len, uint64_t dest, uint8_t opts)
 {
-    uint8_t frame[MAX_BUF_SIZE];
+    /* uint8_t frame[MAX_BUF_SIZE]; */
+    uint8_t frame[MAX_BUF_SIZE + 18];
 
     // TX frame has 14 bytes overhead
     // does not include delimiter or length
@@ -54,8 +59,8 @@ uint8_t tx(uint8_t *data, uint16_t data_len, uint64_t dest, uint8_t opts)
 
     // delim + len_high + len_low + fsize + checksum
     // must fit in the buffer.
-    if (frame_len > MAX_BUF_SIZE)
-        return FRAME_SIZE_ERR;
+    /* if (frame_len > MAX_BUF_SIZE)
+     *     return FRAME_SIZE_ERR; */
 
     frame[0] = 0x7E;
     frame[1] = (uint8_t)(data_len >> 8);
@@ -92,7 +97,7 @@ uint8_t tx(uint8_t *data, uint16_t data_len, uint64_t dest, uint8_t opts)
     frame[frame_len - 1] = 0xFF - sum;
 
     // send it
-    cli();
+    // escape it if we have to.
     put_byte(frame[0]);
     for (int i=1; i < frame_len; i++)
         if (frame[i] == SPECIAL_BYTES.FRAME_DELIM ||
@@ -108,7 +113,6 @@ uint8_t tx(uint8_t *data, uint16_t data_len, uint64_t dest, uint8_t opts)
             put_byte(frame[i]);
         }
             
-    sei();
     return 0;
 }
 
@@ -120,16 +124,16 @@ uint8_t rx(uint8_t *frame)
     // Add timeout here.
     do
     {
+        /* ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+         * {
+         *     tx((uint8_t*)(rbuf.buf), MAX_BUF_SIZE, 0x000000000000FFFF, 0x00);
+         *     tx((uint8_t*)(rbuf.start), 2, 0x000000000000FFFF, 0x00);
+         *     tx((uint8_t*)(rbuf.end), 2, 0x000000000000FFFF, 0x00);
+         * } */
+        for (int i=0; i<MAX_BUF_SIZE; i++)
+            frame[i] = 0x00;
         ret = find_frame(&rbuf, frame);
-        if (ret == FRAME_RX_INCOMPLETE)
-        {
-            uint16_t data_len = ((uint16_t)frame[1] << 8) | (uint16_t)frame[2];
-            tx((uint8_t*)"FRAME_RX_INCOMPLETE", 20, 0x000000000000FFFF, 0x00);
-        }
-        else
-        {
-            tx(&ret, 1, 0x000000000000FFFF, 0x00);
-        }
+
     }
     while (ret != 0);
     return ret;
@@ -137,7 +141,7 @@ uint8_t rx(uint8_t *frame)
 
 // This will shift up to the frame delimiter, or shift
 // everything out if one was not found.
-void shift_to_delim(volatile rbuf_t *r)
+uint8_t shift_to_delim(volatile rbuf_t *r)
 {
     uint16_t i;
     uint8_t found = 0;
@@ -158,11 +162,14 @@ void shift_to_delim(volatile rbuf_t *r)
         if (!found)
             rbuf_shift(r, buf_len);
     }
+    else
+        found = 2;
+    return found;
 }
 
 // The same as shift_to_delim, but shifts the current frame out
 // no matter what.
-void shift_frame_out(volatile rbuf_t *r)
+uint8_t shift_frame_out(volatile rbuf_t *r)
 {
     uint16_t i;
     uint8_t found = 0;
@@ -180,6 +187,7 @@ void shift_frame_out(volatile rbuf_t *r)
     }
     if (!found)
         rbuf_shift(r, buf_len);
+    return found;
 }
 
 //! Checks the receive buffer for any potential frames. 
@@ -204,7 +212,9 @@ uint8_t find_frame(volatile rbuf_t *r, uint8_t *frame)
             frame[i] = rbuf_read(r, i);
         }
 
+
         unescape(frame, MAX_BUF_SIZE);
+
         ret =  validate_frame(frame, MAX_BUF_SIZE);
     }
     else
@@ -222,23 +232,19 @@ uint8_t find_frame(volatile rbuf_t *r, uint8_t *frame)
 void unescape(uint8_t *frame, uint16_t size)
 {
     uint16_t i = 1;
-    uint16_t j;
+    uint16_t j = 0;
     // stop if we reach the end of the array. 
-    while (i < size)
+    while (i + j < size)
     {
         // Check that we reached an escape byte.
         if (frame[i] == SPECIAL_BYTES.ESCAPE)
         {
-            j = i;
-            // shift the right side of byte array to the left.
-            while (j+1 < size)
-            {
-                frame[j] = frame[j+1];
-                j++;
-            }
-
-            // Unescape the character.
-            frame[i] = frame[i] ^ 0x20;
+            j++;
+            frame[i] = frame[i + j] ^ 0x20;
+        }
+        else
+        {
+            frame[i] = frame[i + j];
         }
         i++;
     }
@@ -248,6 +254,7 @@ void unescape(uint8_t *frame, uint16_t size)
 uint8_t validate_frame(uint8_t *frame, uint16_t size)
 {
     uint8_t ret = 0;
+    uint8_t r;
     uint8_t sum = 0;
     uint16_t data_len, frame_len, buf_len;
 
@@ -260,8 +267,9 @@ uint8_t validate_frame(uint8_t *frame, uint16_t size)
         if (frame_len > MAX_BUF_SIZE)
         {
             // Frame too large for the buffer.
+            //shift_frame_out(&rbuf);
+            rbuf_shift(&rbuf, 1);
             ret = FRAME_SIZE_ERR;
-            shift_frame_out(&rbuf);
             //status(STATUS3);
         }
         else
@@ -281,18 +289,21 @@ uint8_t validate_frame(uint8_t *frame, uint16_t size)
         if ((uint8_t)(sum & 0xFF) != (uint8_t)0xFF)
         {
             ret = FRAME_SUM_ERR;
-            tx(&sum, 1, 0x000000000000FFFF, 0x00);
         }
         // Shift it out of the buffer, whether it's good or not.
         //status(STATUS5);
-        shift_frame_out(&rbuf);
+        //r = shift_frame_out(&rbuf);
+        rbuf_shift(&rbuf, 1);
     }
     return ret;
 }
 
 ISR(USART_RX_vect)
 {
-    uint8_t tmp = UDR0;
-    rbuf_append(&rbuf, tmp);
+    rbuf.buf[rbuf.end] = UDR0;
+    if (rbuf.end + 1 >= MAX_BUF_SIZE)
+        rbuf.end = 0;
+    else
+        rbuf.end++;
 }
 
