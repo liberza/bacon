@@ -4,11 +4,11 @@
 //! Shift the start index ahead by shamt.
 void rbuf_shift(volatile rbuf_t *r, uint16_t shamt)
 {
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-    {
-        //FIXME: check that this doesn't pass the end pointer.
+    uint16_t len = rbuf_len(r);
+    if (shamt >= len)
+        r->start = r->end;
+    else
         r->start = ((r->start + shamt) % (MAX_BUF_SIZE));
-    }
 }
 
 //! Append a value to the buffer, moving the end index ahead by 1
@@ -36,11 +36,8 @@ uint8_t rbuf_append(volatile rbuf_t *r, uint8_t x)
 uint8_t rbuf_read(volatile rbuf_t *r, uint16_t i)
 {
     uint8_t byte;
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-    {
-        // FIXME: can read beyond r->end.
-        byte = r->buf[(r->start + i) % MAX_BUF_SIZE];
-    }
+    // FIXME: can read beyond r->end.
+    byte = r->buf[(r->start + i) % MAX_BUF_SIZE];
     return byte;
 }
 
@@ -49,9 +46,6 @@ uint8_t rbuf_read(volatile rbuf_t *r, uint16_t i)
 uint16_t rbuf_len(volatile rbuf_t *r)
 {
     uint16_t len;
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-    {
-        len = (r->start < r->end) ? r->end - r->start : MAX_BUF_SIZE - r->start + r->end;
-    }
+    len = (r->start < r->end) ? r->end - r->start : MAX_BUF_SIZE - r->start + r->end;
     return len;
 }

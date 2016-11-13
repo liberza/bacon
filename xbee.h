@@ -58,7 +58,8 @@ struct frame_t
     uint8_t data[MAX_BUF_SIZE];
 };
 
-const static struct frame_types_t FRAME_TYPES;
+const struct frame_types_t FRAME_TYPES;
+const struct frame_types_t FRAME_OHEAD;
 
 //! Initialize buffer and interrupts
 void xbee_init();

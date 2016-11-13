@@ -10,7 +10,7 @@ volatile rbuf_t rbuf;
 uint8_t func_code = 0x00;
 uint8_t err_code = 0x00;
 
-const static struct frame_types_t FRAME_TYPES =
+const struct frame_types_t FRAME_TYPES =
 {
     .AT             = (uint8_t)0x08,
     .AT_QPV         = (uint8_t)0x09,
@@ -26,6 +26,12 @@ const static struct frame_types_t FRAME_TYPES =
     .NODE_ID        = (uint8_t)0x95,
     .REMOTE_RESP    = (uint8_t)0x97
 };  
+
+const struct frame_types_t FRAME_OHEAD =
+{
+    .TX             = (uint8_t)18,
+    .RX             = (uint8_t)16,
+};
 
 const static struct special_bytes_t SPECIAL_BYTES =
 {
@@ -121,15 +127,15 @@ uint8_t tx(uint8_t *data, uint16_t data_len, uint64_t dest, uint8_t opts)
 uint8_t rx(uint8_t *frame)
 {
     uint8_t ret;
+    /* uint16_t start, end; */
     // Add timeout here.
     do
     {
-        /* ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-         * {
-         *     tx((uint8_t*)(rbuf.buf), MAX_BUF_SIZE, 0x000000000000FFFF, 0x00);
-         *     tx((uint8_t*)(rbuf.start), 2, 0x000000000000FFFF, 0x00);
-         *     tx((uint8_t*)(rbuf.end), 2, 0x000000000000FFFF, 0x00);
-         * } */
+        /* tx((uint8_t*)(rbuf.buf), MAX_BUF_SIZE, 0x000000000000FFFF, 0x00); */
+        /* start = rbuf.start; */
+        /* end = rbuf.end; */
+        /* tx((uint8_t*)(start), 2, 0x000000000000FFFF, 0x00); */
+        /* tx((uint8_t*)(end), 2, 0x000000000000FFFF, 0x00); */
         for (int i=0; i<MAX_BUF_SIZE; i++)
             frame[i] = 0x00;
         ret = find_frame(&rbuf, frame);
@@ -254,7 +260,6 @@ void unescape(uint8_t *frame, uint16_t size)
 uint8_t validate_frame(uint8_t *frame, uint16_t size)
 {
     uint8_t ret = 0;
-    uint8_t r;
     uint8_t sum = 0;
     uint16_t data_len, frame_len, buf_len;
 
