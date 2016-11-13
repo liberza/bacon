@@ -102,6 +102,7 @@ uint8_t tx(uint8_t *data, uint8_t dsize, uint64_t dest, uint8_t opts)
 uint8_t rx(uint8_t *frame)
 {
     uint8_t ret;
+    uint16_t buf_len;
     // Add timeout here.
     do
     {
@@ -115,18 +116,38 @@ uint8_t rx(uint8_t *frame)
 // everything out if one was not found.
 void shift_to_delim(volatile rbuf_t *r)
 {
+    uint16_t i;
+    uint16_t buf_len = rbuf_len(r);
     if (rbuf_read(r, 0) != SPECIAL_BYTES.FRAME_DELIM)
     {
-        // Find the first frame delimiter.
-        for (uint16_t i=1; i<MAX_BUF_SIZE; i++)
+        // Find the next frame delimiter.
+        for (i=1; i<buf_len; i++)
         {
             if (rbuf_read(r, i) == SPECIAL_BYTES.FRAME_DELIM)
             {
-                rbuf_shift(r, i);
                 break;
             }
         }
+        rbuf_shift(r, i);
     }
+}
+
+// The same as shift_to_delim, but shifts the current frame out
+// no matter what.
+void shift_frame_out(volatile rbuf_t *r)
+{
+    uint16_t i;
+    uint16_t buf_len = rbuf_len(r);
+
+    // Find the next frame delimiter.
+    for (i=1; i<buf_len; i++)
+    {
+        if (rbuf_read(r, i) == SPECIAL_BYTES.FRAME_DELIM)
+        {
+            break;
+        }
+    }
+    rbuf_shift(r, i);
 }
 
 //! Checks the receive buffer for any potential frames. 
@@ -135,6 +156,7 @@ void shift_to_delim(volatile rbuf_t *r)
 //! while this function is executing.
 uint8_t find_frame(volatile rbuf_t *r, uint8_t *frame)
 {
+    //status(STATUS1);
     uint16_t buf_len;
     uint8_t ret;
     // Check that the first byte is a frame delimiter.
@@ -157,6 +179,7 @@ uint8_t find_frame(volatile rbuf_t *r, uint8_t *frame)
     {
         // could not find frame delimiter.
         ret = FRAME_DELIM_ERR;
+        //status(STATUS2);
     }
     return ret;
 }
@@ -230,17 +253,20 @@ uint8_t validate_frame(uint8_t *frame, uint16_t size)
     data_len = ((uint16_t)frame[1] << 8) | (uint16_t)frame[2];
     frame_len = data_len + 4;
     buf_len = rbuf_len(&rbuf);
+    tx(&frame_len, 2, 0x000000000000FFFF, 0x00);
     if (frame_len > buf_len)
     {
         if (frame_len > MAX_BUF_SIZE)
         {
             // Frame too large for the buffer.
             ret = FRAME_SIZE_ERR;
-            shift_to_delim(&rbuf);
+            shift_frame_out(&rbuf);
+            //status(STATUS3);
         }
         else
         {
             ret = FRAME_RX_INCOMPLETE;
+            //status(STATUS4);
         }
     }
     else
@@ -256,7 +282,8 @@ uint8_t validate_frame(uint8_t *frame, uint16_t size)
             ret = FRAME_SUM_ERR;
         }
         // Shift it out of the buffer, whether it's good or not.
-        shift_to_delim(&rbuf);
+        //status(STATUS5);
+        shift_frame_out(&rbuf);
     }
     // possibly make this nicer at some point...
     return ret;

@@ -7,9 +7,7 @@ void rbuf_shift(volatile rbuf_t *r, uint16_t shamt)
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
     {
         //FIXME: check that this doesn't pass the end pointer.
-        r->start = ((r->start - shamt) % (MAX_BUF_SIZE));
-        if (r->start < 0)
-            r->start += MAX_BUF_SIZE;
+        r->start = ((r->start + shamt) % (MAX_BUF_SIZE));
     }
 }
 
@@ -56,10 +54,7 @@ uint16_t rbuf_len(volatile rbuf_t *r)
     uint16_t len;
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
     {
-        if (r->start <= r->end)
-            len = r->end - r->start;
-        else
-            len = MAX_BUF_SIZE - r->start + r->end; 
+        len = (r->start < r->end) ? r->end - r->start : MAX_BUF_SIZE - r->start + r->end;
     }
     return len;
 }
