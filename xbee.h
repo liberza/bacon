@@ -67,7 +67,7 @@ void xbee_init();
 uint8_t rx(uint8_t *frame);
 
 //! Transmit a Digimesh frame.
-uint8_t tx(uint8_t *data, uint8_t psize, uint64_t dest, uint8_t opts);
+uint8_t tx(uint8_t *data, uint16_t data_len, uint64_t dest, uint8_t opts);
 
 //! Escape a sequence of bytes by XOR'ing special chars with 0x20 and
 //! adding the ESCAPE byte before the special char.

@@ -103,7 +103,9 @@ class XBee():
         num_bytes = self.serial.in_waiting
         self.rx_buf.extend(self.serial.read(num_bytes))
         sequence = self.rx_buf.split(bytes(b'\x7E'))        
-        print(self.rx_buf)
+        #print(sequence)
+        #sequence =  [d+e for e in rx_buf.split(d) if e != ""]
+        #print(self.rx_buf)
         for s in sequence:
             frame = self.validate_frame(s)
             if (frame is not None):
@@ -111,7 +113,7 @@ class XBee():
                 received = True
 
         if (received == True):
-            self.rx_buf = sequence[-1]
+            self.rx_buf = bytearray()
             return self.rx_queue.get()
 
         else:
@@ -189,7 +191,7 @@ class XBee():
                 frame_len = (frame[0] << 8) | frame[1]
             # make sure frame length is accurate
             if (len(frame[2:-1]) != frame_len):
-                print('invalid len: ' + str(len(frame[2:-1])) + ' act: ' + str(frame_len))
+                #print('invalid len: ' + str(len(frame[2:-1])) + ' act: ' + str(frame_len))
                 frame = None
             # check checksum
             elif ((sum(frame[2:]) & 0x0FF) != 0xFF):
@@ -209,7 +211,7 @@ class XBee():
         
 
 if __name__ == '__main__':
-    xb = XBee('/dev/xbee', 1200)
+    xb = XBee('/dev/ttyUSB0', 1200)
     '''
     data = bytearray((b'ASDFLOL qwerty \x11 hello {}{}'))
     print(data)

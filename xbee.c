@@ -24,7 +24,7 @@ const static struct frame_types_t FRAME_TYPES =
     .EXPLICIT_RX    = (uint8_t)0x91,
     .NODE_ID        = (uint8_t)0x95,
     .REMOTE_RESP    = (uint8_t)0x97
-};
+};  
 
 const static struct special_bytes_t SPECIAL_BYTES =
 {
@@ -38,27 +38,28 @@ void xbee_init()
 {
     rbuf.start = 0;
     rbuf.end = 0;
-    //TX_INT_ENABLE();
+    /* TX_INT_ENABLE(); */
     RX_INT_ENABLE();
 }
 
-uint8_t tx(uint8_t *data, uint8_t dsize, uint64_t dest, uint8_t opts)
+uint8_t tx(uint8_t *data, uint16_t data_len, uint64_t dest, uint8_t opts)
 {
     uint8_t frame[MAX_BUF_SIZE];
 
     // TX frame has 14 bytes overhead
     // does not include delimiter or length
-    uint8_t fsize = dsize + 14;
+    data_len += 14;
+    uint16_t frame_len = data_len + 4;
     uint8_t sum = 0;
 
     // delim + len_high + len_low + fsize + checksum
     // must fit in the buffer.
-    if ((fsize + 5) > MAX_BUF_SIZE)
+    if (frame_len > MAX_BUF_SIZE)
         return FRAME_SIZE_ERR;
 
     frame[0] = 0x7E;
-    frame[1] = (uint8_t)(fsize >> 8);
-    frame[2] = (uint8_t)(fsize);
+    frame[1] = (uint8_t)(data_len >> 8);
+    frame[2] = (uint8_t)(data_len);
     frame[3] = FRAME_TYPES.TX;
     frame[4] = 0x01;
     frame[5] = (uint8_t)(dest >> 56);
@@ -81,18 +82,32 @@ uint8_t tx(uint8_t *data, uint8_t dsize, uint64_t dest, uint8_t opts)
     }
 
     // append data and sum it
-    for (int i=0; i<dsize; i++)
+    for (int i=17; i < (frame_len - 1); i++)
     {
-        frame[17 + i] = data[i];
-        sum += data[i];
+        frame[i] = data[i - 17];
+        sum += data[i - 17];
     }
+
     // put checksum at the end
-    frame[fsize + 3] = 0xFF - sum;
+    frame[frame_len - 1] = 0xFF - sum;
 
     // send it
     cli();
-    for (int i=0; i < fsize + 5; i++)
-        put_byte(frame[i]);
+    put_byte(frame[0]);
+    for (int i=1; i < frame_len; i++)
+        if (frame[i] == SPECIAL_BYTES.FRAME_DELIM ||
+            frame[i] == SPECIAL_BYTES.ESCAPE      ||
+            frame[i] == SPECIAL_BYTES.XON         ||
+            frame[i] == SPECIAL_BYTES.XOFF)
+        {
+            put_byte(SPECIAL_BYTES.ESCAPE);
+            put_byte(frame[i] ^ 0x20);
+        }
+        else
+        {
+            put_byte(frame[i]);
+        }
+            
     sei();
     return 0;
 }
@@ -102,11 +117,19 @@ uint8_t tx(uint8_t *data, uint8_t dsize, uint64_t dest, uint8_t opts)
 uint8_t rx(uint8_t *frame)
 {
     uint8_t ret;
-    uint16_t buf_len;
     // Add timeout here.
     do
     {
         ret = find_frame(&rbuf, frame);
+        if (ret == FRAME_RX_INCOMPLETE)
+        {
+            uint16_t data_len = ((uint16_t)frame[1] << 8) | (uint16_t)frame[2];
+            tx((uint8_t*)"FRAME_RX_INCOMPLETE", 20, 0x000000000000FFFF, 0x00);
+        }
+        else
+        {
+            tx(&ret, 1, 0x000000000000FFFF, 0x00);
+        }
     }
     while (ret != 0);
     return ret;
@@ -117,7 +140,9 @@ uint8_t rx(uint8_t *frame)
 void shift_to_delim(volatile rbuf_t *r)
 {
     uint16_t i;
+    uint8_t found = 0;
     uint16_t buf_len = rbuf_len(r);
+
     if (rbuf_read(r, 0) != SPECIAL_BYTES.FRAME_DELIM)
     {
         // Find the next frame delimiter.
@@ -125,10 +150,13 @@ void shift_to_delim(volatile rbuf_t *r)
         {
             if (rbuf_read(r, i) == SPECIAL_BYTES.FRAME_DELIM)
             {
+                found = 1;
+                rbuf_shift(r, i);
                 break;
             }
         }
-        rbuf_shift(r, i);
+        if (!found)
+            rbuf_shift(r, buf_len);
     }
 }
 
@@ -137,6 +165,7 @@ void shift_to_delim(volatile rbuf_t *r)
 void shift_frame_out(volatile rbuf_t *r)
 {
     uint16_t i;
+    uint8_t found = 0;
     uint16_t buf_len = rbuf_len(r);
 
     // Find the next frame delimiter.
@@ -144,10 +173,13 @@ void shift_frame_out(volatile rbuf_t *r)
     {
         if (rbuf_read(r, i) == SPECIAL_BYTES.FRAME_DELIM)
         {
+            found = 1;
+            rbuf_shift(r, i);
             break;
         }
     }
-    rbuf_shift(r, i);
+    if (!found)
+        rbuf_shift(r, buf_len);
 }
 
 //! Checks the receive buffer for any potential frames. 
@@ -212,36 +244,6 @@ void unescape(uint8_t *frame, uint16_t size)
     }
 }
 
-uint8_t escape(uint8_t *frame, uint16_t size)
-{
-    uint16_t i = 1;
-    uint16_t j;
-
-    while (i < size)
-    {
-        if (frame[i] == SPECIAL_BYTES.FRAME_DELIM ||
-            frame[i] == SPECIAL_BYTES.ESCAPE      ||
-            frame[i] == SPECIAL_BYTES.XON         ||
-            frame[i] == SPECIAL_BYTES.XOFF)
-        {
-            if (i + 1 == size) // can't add an escape char, buffer full
-                return FRAME_SIZE_ERR;
-            j = size - 1;
-            // shift right side of array to the right.
-            while (j > i)
-            {
-                frame[j] = frame[j - 1];
-                j--;
-            }
-            frame[i] = SPECIAL_BYTES.ESCAPE;
-            frame[i+1] = frame[i+1] ^ 0x20;
-            i++; // make sure we increment i twice in this case.
-        }
-        i++;
-    }
-    return 0;
-}
-
 //! Check the checksum. 
 uint8_t validate_frame(uint8_t *frame, uint16_t size)
 {
@@ -253,7 +255,6 @@ uint8_t validate_frame(uint8_t *frame, uint16_t size)
     data_len = ((uint16_t)frame[1] << 8) | (uint16_t)frame[2];
     frame_len = data_len + 4;
     buf_len = rbuf_len(&rbuf);
-    tx(&frame_len, 2, 0x000000000000FFFF, 0x00);
     if (frame_len > buf_len)
     {
         if (frame_len > MAX_BUF_SIZE)
@@ -280,12 +281,12 @@ uint8_t validate_frame(uint8_t *frame, uint16_t size)
         if ((uint8_t)(sum & 0xFF) != (uint8_t)0xFF)
         {
             ret = FRAME_SUM_ERR;
+            tx(&sum, 1, 0x000000000000FFFF, 0x00);
         }
         // Shift it out of the buffer, whether it's good or not.
         //status(STATUS5);
         shift_frame_out(&rbuf);
     }
-    // possibly make this nicer at some point...
     return ret;
 }
 
