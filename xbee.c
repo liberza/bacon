@@ -90,8 +90,10 @@ uint8_t tx(uint8_t *data, uint8_t dsize, uint64_t dest, uint8_t opts)
     frame[fsize + 3] = 0xFF - sum;
 
     // send it
+    cli();
     for (int i=0; i < fsize + 5; i++)
         put_byte(frame[i]);
+    sei();
     return 0;
 }
 
@@ -134,7 +136,6 @@ void shift_to_delim(volatile rbuf_t *r)
 uint8_t find_frame(volatile rbuf_t *r, uint8_t *frame)
 {
     uint16_t buf_len;
-    uint16_t i;
     uint8_t ret;
     // Check that the first byte is a frame delimiter.
     // If not, shift out bytes until we hit one.
@@ -168,7 +169,6 @@ void unescape(uint8_t *frame, uint16_t size)
     uint16_t i = 1;
     uint16_t j;
     // stop if we reach the end of the array. 
-    put_byte(frame[i]);
     while (i < size)
     {
         // Check that we reached an escape byte.
@@ -226,7 +226,7 @@ uint8_t validate_frame(uint8_t *frame, uint16_t size)
     uint8_t sum = 0;
     uint16_t data_len, frame_len, buf_len;
 
-    // check that we have at least len # of bytes in the buffer.
+    // check that we have at least frame_len # of bytes in the buffer.
     data_len = ((uint16_t)frame[1] << 8) | (uint16_t)frame[2];
     frame_len = data_len + 4;
     buf_len = rbuf_len(&rbuf);
@@ -237,7 +237,6 @@ uint8_t validate_frame(uint8_t *frame, uint16_t size)
             // Frame too large for the buffer.
             ret = FRAME_SIZE_ERR;
             shift_to_delim(&rbuf);
-
         }
         else
         {
@@ -251,11 +250,12 @@ uint8_t validate_frame(uint8_t *frame, uint16_t size)
         {
             sum += frame[i];
         }
-        // Make sure they add to 0xFF, including the checksum
+        // Make sure they add to 0xFF.
         if ((uint8_t)(sum & 0xFF) != (uint8_t)0xFF)
         {
             ret = FRAME_SUM_ERR;
         }
+        // Shift it out of the buffer, whether it's good or not.
         shift_to_delim(&rbuf);
     }
     // possibly make this nicer at some point...
