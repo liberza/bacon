@@ -18,6 +18,7 @@
 #define FRAME_SIZE_ERR (uint8_t)(0x01)
 #define FRAME_DELIM_ERR (uint8_t)(0x02)
 #define FRAME_SUM_ERR (uint8_t)(0x04)
+#define FRAME_RX_INCOMPLETE (uint8_t)(0x08)
 
 //! Buffer for serial RX interrupt service routne.
 volatile extern rbuf_t rbuf;
@@ -54,7 +55,7 @@ struct frame_types_t
 struct frame_t
 {
     uint16_t len;
-    uint8_t data[BUF_SIZE];
+    uint8_t data[MAX_BUF_SIZE];
 };
 
 const static struct frame_types_t FRAME_TYPES;

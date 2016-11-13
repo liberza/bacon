@@ -42,6 +42,7 @@ class XBee():
                                     stopbits=serial.STOPBITS_ONE,
                                     bytesize=serial.EIGHTBITS
                                     )
+        self.serial.flush()
         # need to do some initialization here.
         # enter AT mode and get the address of the xbee. upper 32 bits:"ATSH" lower 32 bits:"ATSL"
         # also get the max payload size with "ATNP"
@@ -102,13 +103,15 @@ class XBee():
         num_bytes = self.serial.in_waiting
         self.rx_buf.extend(self.serial.read(num_bytes))
         sequence = self.rx_buf.split(bytes(b'\x7E'))        
+        print(self.rx_buf)
         for s in sequence:
             frame = self.validate_frame(s)
-            if (frame):
+            if (frame is not None):
                 self.rx_queue.put(frame, self.BUF_FULL_TIMEOUT)
                 received = True
 
         if (received == True):
+            self.rx_buf = sequence[-1]
             return self.rx_queue.get()
 
         else:
@@ -168,7 +171,7 @@ class XBee():
                     unescaped.append(data[i+1] ^ 0x20)
                     next(q, None) # skip the next iteration
                 else:
-                    return False
+                    return None
             
             else:
                 unescaped.append(data[i])
@@ -177,21 +180,22 @@ class XBee():
     def validate_frame(self, frame):
         # do frame validation here...
         frame = self.unescape(frame)
-        if (frame == False):
-            return False
-        if (len(frame) < 5):
-            # already know this isn't a valid frame: not enough overhead
-            return False
-        frame_len = (frame[0] << 8) | frame[1]
-        # make sure frame length is accurate
-        if (len(frame[2:-1]) != frame_len):
-            #print('invalid len 2: ' + str(len(frame[2:-1])) + ' act: ' + str(frame_len))
-            return False
-        # check checksum
-        if ((sum(frame[2:]) & 0x0FF) != 0xFF):
-            print('invalid checksum: ' + '{:02X}'.format(sum(frame[2:]) & 0x0FF))
-            print(frame)
-            return False
+        if (frame is not None):
+            if (len(frame) < 5):
+                # already know this isn't a valid frame: not enough overhead
+                frame = None
+                return None
+            else:
+                frame_len = (frame[0] << 8) | frame[1]
+            # make sure frame length is accurate
+            if (len(frame[2:-1]) != frame_len):
+                print('invalid len: ' + str(len(frame[2:-1])) + ' act: ' + str(frame_len))
+                frame = None
+            # check checksum
+            elif ((sum(frame[2:]) & 0x0FF) != 0xFF):
+                #print('invalid checksum: ' + '{:02X}'.format(sum(frame[2:]) & 0x0FF))
+                #print(frame)
+                frame = None
         return frame
                 
     def get_frame(self):
@@ -205,7 +209,7 @@ class XBee():
         
 
 if __name__ == '__main__':
-    xb = XBee('/dev/ttyUSB1', 1200)
+    xb = XBee('/dev/xbee', 1200)
     '''
     data = bytearray((b'ASDFLOL qwerty \x11 hello {}{}'))
     print(data)
@@ -218,7 +222,6 @@ if __name__ == '__main__':
         r = xb.rx()
         while (r == None):
             r = xb.rx()
-        time.sleep(1)
 
-        #print(r)
-        xb.parse_frame(r)
+        print(r)
+        #xb.parse_frame(r)

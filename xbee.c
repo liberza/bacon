@@ -38,13 +38,13 @@ void xbee_init()
 {
     rbuf.start = 0;
     rbuf.end = 0;
-    TX_INT_ENABLE();
+    //TX_INT_ENABLE();
     RX_INT_ENABLE();
 }
 
 uint8_t tx(uint8_t *data, uint8_t dsize, uint64_t dest, uint8_t opts)
 {
-    uint8_t frame[BUF_SIZE];
+    uint8_t frame[MAX_BUF_SIZE];
 
     // TX frame has 14 bytes overhead
     // does not include delimiter or length
@@ -53,7 +53,7 @@ uint8_t tx(uint8_t *data, uint8_t dsize, uint64_t dest, uint8_t opts)
 
     // delim + len_high + len_low + fsize + checksum
     // must fit in the buffer.
-    if ((fsize + 5) > BUF_SIZE)
+    if ((fsize + 5) > MAX_BUF_SIZE)
         return FRAME_SIZE_ERR;
 
     frame[0] = 0x7E;
@@ -92,11 +92,10 @@ uint8_t tx(uint8_t *data, uint8_t dsize, uint64_t dest, uint8_t opts)
     // send it
     for (int i=0; i < fsize + 5; i++)
         put_byte(frame[i]);
-
     return 0;
 }
 
-//! rx(frame) assumes frame has BUF_SIZE bytes allocated already.
+//! rx(frame) assumes frame has MAX_BUF_SIZE bytes allocated already.
 //! DO NOT use this if frame is unallocated.
 uint8_t rx(uint8_t *frame)
 {
@@ -105,10 +104,27 @@ uint8_t rx(uint8_t *frame)
     do
     {
         ret = find_frame(&rbuf, frame);
-        status(ret);
     }
     while (ret != 0);
     return ret;
+}
+
+// This will shift up to the frame delimiter, or shift
+// everything out if one was not found.
+void shift_to_delim(volatile rbuf_t *r)
+{
+    if (rbuf_read(r, 0) != SPECIAL_BYTES.FRAME_DELIM)
+    {
+        // Find the first frame delimiter.
+        for (uint16_t i=1; i<MAX_BUF_SIZE; i++)
+        {
+            if (rbuf_read(r, i) == SPECIAL_BYTES.FRAME_DELIM)
+            {
+                rbuf_shift(r, i);
+                break;
+            }
+        }
+    }
 }
 
 //! Checks the receive buffer for any potential frames. 
@@ -122,18 +138,7 @@ uint8_t find_frame(volatile rbuf_t *r, uint8_t *frame)
     uint8_t ret;
     // Check that the first byte is a frame delimiter.
     // If not, shift out bytes until we hit one.
-    if (rbuf_read(r, 0) != SPECIAL_BYTES.FRAME_DELIM)
-    {
-        // Find the first frame delimiter.
-        for (i=1; i<BUF_SIZE; i++)
-        {
-            if (rbuf_read(r, i) == SPECIAL_BYTES.FRAME_DELIM)
-                break;
-        }
-        // This will shift up to the frame delimiter, or shift
-        // everything out if one was not found.
-        rbuf_shift(r, i);
-    }
+    shift_to_delim(r);
 
     if (rbuf_read(r, 0) == SPECIAL_BYTES.FRAME_DELIM)
     {
@@ -144,14 +149,13 @@ uint8_t find_frame(volatile rbuf_t *r, uint8_t *frame)
             frame[i] = rbuf_read(r, i);
         }
 
-        unescape(frame, BUF_SIZE);
-        ret =  validate_frame(frame, BUF_SIZE);
-        tx(&ret, 1, 0x000000000000FFFF, 0x00);
+        unescape(frame, MAX_BUF_SIZE);
+        ret =  validate_frame(frame, MAX_BUF_SIZE);
     }
     else
     {
         // could not find frame delimiter.
-        ret = -2;
+        ret = FRAME_DELIM_ERR;
     }
     return ret;
 }
@@ -164,6 +168,7 @@ void unescape(uint8_t *frame, uint16_t size)
     uint16_t i = 1;
     uint16_t j;
     // stop if we reach the end of the array. 
+    put_byte(frame[i]);
     while (i < size)
     {
         // Check that we reached an escape byte.
@@ -219,29 +224,41 @@ uint8_t validate_frame(uint8_t *frame, uint16_t size)
 {
     uint8_t ret = 0;
     uint8_t sum = 0;
-    uint16_t len;
-    len = ((uint16_t)frame[1] << 8) | frame[2];
-    if (len >= BUF_SIZE)
+    uint16_t data_len, frame_len, buf_len;
+
+    // check that we have at least len # of bytes in the buffer.
+    data_len = ((uint16_t)frame[1] << 8) | (uint16_t)frame[2];
+    frame_len = data_len + 4;
+    buf_len = rbuf_len(&rbuf);
+    if (frame_len > buf_len)
     {
-        return FRAME_SIZE_ERR;
-    }
-    else if (frame[0] != SPECIAL_BYTES.FRAME_DELIM)
-    {
-        return FRAME_DELIM_ERR;
+        if (frame_len > MAX_BUF_SIZE)
+        {
+            // Frame too large for the buffer.
+            ret = FRAME_SIZE_ERR;
+            shift_to_delim(&rbuf);
+
+        }
+        else
+        {
+            ret = FRAME_RX_INCOMPLETE;
+        }
     }
     else
     {
-        // Sum the bytes after the length.
-        for (int i=3; i<len; i++)
+        // Sum from byte 3 to the end of the frame, including checksum.
+        for (int i=3; i < (frame_len); i++)
         {
             sum += frame[i];
         }
         // Make sure they add to 0xFF, including the checksum
         if ((uint8_t)(sum & 0xFF) != (uint8_t)0xFF)
         {
-            return FRAME_SUM_ERR;
+            ret = FRAME_SUM_ERR;
         }
+        shift_to_delim(&rbuf);
     }
+    // possibly make this nicer at some point...
     return ret;
 }
 

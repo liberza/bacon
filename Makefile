@@ -119,6 +119,10 @@ squeaky_clean:
 ##########           Flashing code to AVR using avrdude         ##########
 ##########------------------------------------------------------##########
 
+fuses:
+	./rst.py
+	$(AVRDUDE) -c $(PROGRAMMER_TYPE) -p $(MCU) $(PROGRAMMER_ARGS) -U lfuse:w:0xe2:m -U hfuse:w:0xd9:m -U efuse:w:0xff:m
+
 flash: $(TARGET).hex 
 	./rst.py
 	$(AVRDUDE) -c $(PROGRAMMER_TYPE) -p $(MCU) $(PROGRAMMER_ARGS) -U flash:w:$<

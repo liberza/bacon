@@ -4,14 +4,14 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#define BUF_SIZE 256
+#define MAX_BUF_SIZE (uint16_t)(256)
 
 #define RBUF_WRITE_SUCCESS 0x00
 #define RBUF_FULL 0x01
 #define RBUF_EMPTY 0x02
 
 typedef struct {
-    uint8_t buf[BUF_SIZE];
+    uint8_t buf[MAX_BUF_SIZE];
     uint16_t start;
     uint16_t end;
 } rbuf_t;

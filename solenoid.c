@@ -2,9 +2,6 @@
 #include <avr/interrupt.h>
 
 
-// Change cpu freq
-#define	F_CPU 1000000UL		// 1 MHz
-
 #include <util/delay.h>
 #include <stdio.h>
 #include <string.h>
