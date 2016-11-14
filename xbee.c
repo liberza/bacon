@@ -149,6 +149,7 @@ uint8_t find_frame(volatile rbuf_t *r, uint8_t *frame)
 {
     uint16_t buf_len;
     uint8_t ret;
+    uint16_t num_unescaped;
     // Check that the first byte is a frame delimiter.
     // If not, shift out bytes until we hit one.
     buf_len = rbuf_len(r);
@@ -166,9 +167,9 @@ uint8_t find_frame(volatile rbuf_t *r, uint8_t *frame)
             frame[i] = rbuf_read(r, i);
         }
 
-        unescape(frame, buf_len);
+        num_unescaped = unescape(frame, buf_len);
 
-        ret = validate_frame(frame, buf_len);
+        ret = validate_frame(frame, buf_len - num_unescaped);
     }
     else
     {
@@ -189,7 +190,7 @@ uint8_t validate_frame(uint8_t *frame, uint16_t buf_len)
     // check that we have at least frame_len # of bytes in the buffer.
     data_len = ((uint16_t)frame[1] << 8) | (uint16_t)frame[2];
     frame_len = data_len + 4;
-    if (frame_len >= buf_len)
+    if (frame_len > buf_len)
     {
         if (frame_len > MAX_BUF_SIZE)
         {
@@ -214,6 +215,7 @@ uint8_t validate_frame(uint8_t *frame, uint16_t buf_len)
         if ((uint8_t)(sum & 0xFF) != (uint8_t)0xFF)
         {
             ret = FRAME_SUM_ERR;
+            tx(frame, buf_len, 0x000000000000FFFF, 0x00);
             status_or(STATUS4);
         }
         // Shift it out of the buffer, whether it's good or not.
@@ -277,25 +279,27 @@ uint8_t shift_frame_out(volatile rbuf_t *r)
 //! Loops through the frame, unescaping any escaped bytes.
 //! Could be done in find_frame and save a loop, but let's see if
 //! that's necessary before premature optimization...
-void unescape(uint8_t *frame, uint16_t frame_len)
+uint16_t unescape(uint8_t *frame, uint16_t frame_len)
 {
-    uint16_t i = 1;
+    uint16_t i;
     uint16_t j = 0;
     // stop if we reach the end of the array. 
-    while (i + j < frame_len)
+    /* while (i + j < frame_len) */
+    for (i=1; i + j < frame_len; i++)
     {
         // Check that we reached an escape byte.
         if (frame[i+j] == SPECIAL_BYTES.ESCAPE)
         {
-            ++j;
+            j++;
             frame[i] = frame[i + j] ^ 0x20;
         }
         else
         {
             frame[i] = frame[i + j];
         }
-        i++;
+        /* i++; */
     }
+    return j;
 }
 
 

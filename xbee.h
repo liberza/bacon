@@ -71,7 +71,7 @@ uint8_t rx(uint8_t *frame);
 uint8_t tx(uint8_t *data, uint16_t data_len, uint64_t dest, uint8_t opts);
 
 //! Remove ESCAPE bytes and XOR special chars with 0x20.
-void unescape(uint8_t *frame, uint16_t size);
+uint16_t unescape(uint8_t *frame, uint16_t size);
 
 uint8_t validate_frame(uint8_t *frame, uint16_t size);
 

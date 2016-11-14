@@ -223,7 +223,7 @@ if __name__ == '__main__':
         r = xb.rx()
         while (r == None):
             r = xb.rx()
-        h = binascii.hexlify(r)
+        h = binascii.hexlify(r[16:-1])
         q = [h[i:i+2] for i in range(0, len(h), 2)]
         c = ""
         for d in q:
