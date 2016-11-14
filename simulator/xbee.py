@@ -165,16 +165,15 @@ class XBee():
 
     def unescape(self, data):
         unescaped = bytearray()
+        last_escaped = False
         # create an iterator from range() so we can use next() on it
         q = iter(range(len(data)))
         for i in q:
-            if data[i] == self.SPECIAL_BYTES['ESCAPE']:
-                if (i+1 < len(data)):
-                    unescaped.append(data[i+1] ^ 0x20)
-                    next(q, None) # skip the next iteration
-                else:
-                    return None
-            
+            if (last_escaped):
+                unescaped.append(data[i] ^ 0x20)
+                last_escaped = False
+            elif data[i] == self.SPECIAL_BYTES['ESCAPE']:
+                last_escaped = True
             else:
                 unescaped.append(data[i])
         return unescaped
@@ -224,7 +223,7 @@ if __name__ == '__main__':
         r = xb.rx()
         while (r == None):
             r = xb.rx()
-        h = binascii.hexlify(r[16:-1])
+        h = binascii.hexlify(r)
         q = [h[i:i+2] for i in range(0, len(h), 2)]
         c = ""
         for d in q:

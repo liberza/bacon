@@ -134,7 +134,7 @@ uint8_t rx(uint8_t *frame)
         for (int i=0; i<MAX_BUF_SIZE; i++)
             frame[i] = 0x00;
         ret = find_frame(&rbuf, frame);
-        /* status(STATUS0); */
+        status(STATUS0);
     }
     while (ret != 0);
     return ret;
@@ -159,20 +159,20 @@ uint8_t find_frame(volatile rbuf_t *r, uint8_t *frame)
     shift_to_delim(r);
     if (rbuf_read(r, 0) == SPECIAL_BYTES.FRAME_DELIM)
     {
-        /* status_or(STATUS1); */
+        status_or(STATUS1);
         buf_len = rbuf_len(r);
         for (int i=0; i < buf_len; i++)
         {
             frame[i] = rbuf_read(r, i);
         }
 
-        unescape(frame, MAX_BUF_SIZE);
+        unescape(frame, buf_len);
 
         ret = validate_frame(frame, buf_len);
     }
     else
     {
-        /* status_or(STATUS2); */
+        status_or(STATUS2);
         // could not find frame delimiter.
         ret = FRAME_DELIM_ERR;
     }
@@ -194,7 +194,7 @@ uint8_t validate_frame(uint8_t *frame, uint16_t buf_len)
         if (frame_len > MAX_BUF_SIZE)
         {
             // Frame too large for the buffer.
-            /* status_or(STATUS3); */
+            status_or(STATUS3);
             shift_frame_out(&rbuf);
             ret = FRAME_SIZE_ERR;
         }
@@ -214,10 +214,10 @@ uint8_t validate_frame(uint8_t *frame, uint16_t buf_len)
         if ((uint8_t)(sum & 0xFF) != (uint8_t)0xFF)
         {
             ret = FRAME_SUM_ERR;
-            /* status_or(STATUS4); */
+            status_or(STATUS4);
         }
         // Shift it out of the buffer, whether it's good or not.
-        /* status_or(STATUS5); */
+        status_or(STATUS5);
         rbuf_shift(&rbuf, frame_len);
         /* shift_frame_out(&rbuf); */
     }
@@ -277,17 +277,17 @@ uint8_t shift_frame_out(volatile rbuf_t *r)
 //! Loops through the frame, unescaping any escaped bytes.
 //! Could be done in find_frame and save a loop, but let's see if
 //! that's necessary before premature optimization...
-void unescape(uint8_t *frame, uint16_t size)
+void unescape(uint8_t *frame, uint16_t frame_len)
 {
     uint16_t i = 1;
     uint16_t j = 0;
     // stop if we reach the end of the array. 
-    while (i + j < size)
+    while (i + j < frame_len)
     {
         // Check that we reached an escape byte.
-        if (frame[i] == SPECIAL_BYTES.ESCAPE)
+        if (frame[i+j] == SPECIAL_BYTES.ESCAPE)
         {
-            j++;
+            ++j;
             frame[i] = frame[i + j] ^ 0x20;
         }
         else
@@ -301,12 +301,10 @@ void unescape(uint8_t *frame, uint16_t size)
 
 ISR(USART_RX_vect)
 {
-    status(STATUS1);
     while(!(UCSR0A & (1<<RXC0)));
     if (rbuf.end >= MAX_BUF_SIZE)
         rbuf.end = 0;
     rbuf.buf[rbuf.end++] = UDR0;
     rx_flag = 1;
-    status(0);
 }
 
