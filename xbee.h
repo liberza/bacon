@@ -77,6 +77,10 @@ uint8_t validate_frame(uint8_t *frame, uint16_t size);
 
 uint8_t find_frame(volatile rbuf_t *r, uint8_t *frame);
 
+uint8_t shift_frame_out(volatile rbuf_t *r);
+
+uint8_t shift_to_delim(volatile rbuf_t *r);
+
 //! ISR for writing bytes and swapping buffers when frame delimiter received.
 ISR(USART_RX_vect);
 

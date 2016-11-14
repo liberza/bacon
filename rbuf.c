@@ -17,7 +17,7 @@ void rbuf_shift(volatile rbuf_t *r, uint16_t shamt)
 uint8_t rbuf_append(volatile rbuf_t *r, uint8_t x)
 {
     uint16_t new_end;
-    uint8_t ret = 3;
+    uint8_t ret;
     new_end = (r->end + 1) % MAX_BUF_SIZE;
     if (new_end != r->start)
     {
@@ -33,12 +33,10 @@ uint8_t rbuf_append(volatile rbuf_t *r, uint8_t x)
 }
 
 //! Read a value from index i in the buffer.
+//! Check if the buffer is empty before reading.
 uint8_t rbuf_read(volatile rbuf_t *r, uint16_t i)
 {
-    uint8_t byte;
-    // FIXME: can read beyond r->end.
-    byte = r->buf[(r->start + i) % MAX_BUF_SIZE];
-    return byte;
+    return r->buf[(r->start + i) % MAX_BUF_SIZE];
 }
 
 //! Return the length of the buffer, or the distance between
@@ -46,6 +44,6 @@ uint8_t rbuf_read(volatile rbuf_t *r, uint16_t i)
 uint16_t rbuf_len(volatile rbuf_t *r)
 {
     uint16_t len;
-    len = (r->start < r->end) ? r->end - r->start : MAX_BUF_SIZE - r->start + r->end;
+    len = (r->start <= r->end) ? r->end - r->start : MAX_BUF_SIZE - r->start + r->end;
     return len;
 }

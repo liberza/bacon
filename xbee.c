@@ -7,6 +7,7 @@
 #include <util/atomic.h>
 
 volatile rbuf_t rbuf;
+volatile uint8_t rx_flag = 0;
 uint8_t func_code = 0x00;
 uint8_t err_code = 0x00;
 
@@ -63,10 +64,8 @@ uint8_t tx(uint8_t *data, uint16_t data_len, uint64_t dest, uint8_t opts)
     uint16_t frame_len = data_len + 4;
     uint8_t sum = 0;
 
-    // delim + len_high + len_low + fsize + checksum
-    // must fit in the buffer.
-    /* if (frame_len > MAX_BUF_SIZE)
-     *     return FRAME_SIZE_ERR; */
+    /* if (frame_len > MAX_BUF_SIZE) */
+        /* return FRAME_SIZE_ERR;  */
 
     frame[0] = 0x7E;
     frame[1] = (uint8_t)(data_len >> 8);
@@ -127,21 +126,101 @@ uint8_t tx(uint8_t *data, uint16_t data_len, uint64_t dest, uint8_t opts)
 uint8_t rx(uint8_t *frame)
 {
     uint8_t ret;
-    /* uint16_t start, end; */
     // Add timeout here.
+    /* while(rx_flag == 0); */
+    /* rx_flag = 0; */
     do
     {
-        /* tx((uint8_t*)(rbuf.buf), MAX_BUF_SIZE, 0x000000000000FFFF, 0x00); */
-        /* start = rbuf.start; */
-        /* end = rbuf.end; */
-        /* tx((uint8_t*)(start), 2, 0x000000000000FFFF, 0x00); */
-        /* tx((uint8_t*)(end), 2, 0x000000000000FFFF, 0x00); */
         for (int i=0; i<MAX_BUF_SIZE; i++)
             frame[i] = 0x00;
         ret = find_frame(&rbuf, frame);
-
+        /* status(STATUS0); */
     }
     while (ret != 0);
+    return ret;
+}
+
+
+//! Checks the receive buffer for any potential frames. 
+//! Try validation, and then shift out of the buffer if validated.
+//! It is important that no interrupts call rbuf_shift()
+//! while this function is executing.
+uint8_t find_frame(volatile rbuf_t *r, uint8_t *frame)
+{
+    uint16_t buf_len;
+    uint8_t ret;
+    // Check that the first byte is a frame delimiter.
+    // If not, shift out bytes until we hit one.
+    buf_len = rbuf_len(r);
+
+    if (buf_len == 0)
+        return RBUF_EMPTY;
+
+    shift_to_delim(r);
+    if (rbuf_read(r, 0) == SPECIAL_BYTES.FRAME_DELIM)
+    {
+        /* status_or(STATUS1); */
+        buf_len = rbuf_len(r);
+        for (int i=0; i < buf_len; i++)
+        {
+            frame[i] = rbuf_read(r, i);
+        }
+
+        unescape(frame, MAX_BUF_SIZE);
+
+        ret = validate_frame(frame, buf_len);
+    }
+    else
+    {
+        /* status_or(STATUS2); */
+        // could not find frame delimiter.
+        ret = FRAME_DELIM_ERR;
+    }
+    return ret;
+}
+
+//! Check the checksum. 
+uint8_t validate_frame(uint8_t *frame, uint16_t buf_len)
+{
+    uint8_t ret = 0;
+    uint8_t sum = 0;
+    uint16_t data_len, frame_len;
+
+    // check that we have at least frame_len # of bytes in the buffer.
+    data_len = ((uint16_t)frame[1] << 8) | (uint16_t)frame[2];
+    frame_len = data_len + 4;
+    if (frame_len >= buf_len)
+    {
+        if (frame_len > MAX_BUF_SIZE)
+        {
+            // Frame too large for the buffer.
+            /* status_or(STATUS3); */
+            shift_frame_out(&rbuf);
+            ret = FRAME_SIZE_ERR;
+        }
+        else
+        {
+            ret = FRAME_RX_INCOMPLETE;
+        }
+    }
+    else
+    {
+        // Sum from byte 3 to the end of the frame, including checksum.
+        for (int i=3; i < (frame_len); i++)
+        {
+            sum += frame[i];
+        }
+        // Make sure they add to 0xFF.
+        if ((uint8_t)(sum & 0xFF) != (uint8_t)0xFF)
+        {
+            ret = FRAME_SUM_ERR;
+            /* status_or(STATUS4); */
+        }
+        // Shift it out of the buffer, whether it's good or not.
+        /* status_or(STATUS5); */
+        rbuf_shift(&rbuf, frame_len);
+        /* shift_frame_out(&rbuf); */
+    }
     return ret;
 }
 
@@ -195,43 +274,6 @@ uint8_t shift_frame_out(volatile rbuf_t *r)
         rbuf_shift(r, buf_len);
     return found;
 }
-
-//! Checks the receive buffer for any potential frames. 
-//! Try validation, and then shift out of the buffer if validated.
-//! It is important that no interrupts call rbuf_shift()
-//! while this function is executing.
-uint8_t find_frame(volatile rbuf_t *r, uint8_t *frame)
-{
-    //status(STATUS1);
-    uint16_t buf_len;
-    uint8_t ret;
-    // Check that the first byte is a frame delimiter.
-    // If not, shift out bytes until we hit one.
-    shift_to_delim(r);
-
-    if (rbuf_read(r, 0) == SPECIAL_BYTES.FRAME_DELIM)
-    {
-        buf_len = rbuf_len(r);
-
-        for (int i=0; i < buf_len; i++)
-        {
-            frame[i] = rbuf_read(r, i);
-        }
-
-
-        unescape(frame, MAX_BUF_SIZE);
-
-        ret =  validate_frame(frame, MAX_BUF_SIZE);
-    }
-    else
-    {
-        // could not find frame delimiter.
-        ret = FRAME_DELIM_ERR;
-        //status(STATUS2);
-    }
-    return ret;
-}
-
 //! Loops through the frame, unescaping any escaped bytes.
 //! Could be done in find_frame and save a loop, but let's see if
 //! that's necessary before premature optimization...
@@ -256,59 +298,15 @@ void unescape(uint8_t *frame, uint16_t size)
     }
 }
 
-//! Check the checksum. 
-uint8_t validate_frame(uint8_t *frame, uint16_t size)
-{
-    uint8_t ret = 0;
-    uint8_t sum = 0;
-    uint16_t data_len, frame_len, buf_len;
-
-    // check that we have at least frame_len # of bytes in the buffer.
-    data_len = ((uint16_t)frame[1] << 8) | (uint16_t)frame[2];
-    frame_len = data_len + 4;
-    buf_len = rbuf_len(&rbuf);
-    if (frame_len > buf_len)
-    {
-        if (frame_len > MAX_BUF_SIZE)
-        {
-            // Frame too large for the buffer.
-            //shift_frame_out(&rbuf);
-            rbuf_shift(&rbuf, 1);
-            ret = FRAME_SIZE_ERR;
-            //status(STATUS3);
-        }
-        else
-        {
-            ret = FRAME_RX_INCOMPLETE;
-            //status(STATUS4);
-        }
-    }
-    else
-    {
-        // Sum from byte 3 to the end of the frame, including checksum.
-        for (int i=3; i < (frame_len); i++)
-        {
-            sum += frame[i];
-        }
-        // Make sure they add to 0xFF.
-        if ((uint8_t)(sum & 0xFF) != (uint8_t)0xFF)
-        {
-            ret = FRAME_SUM_ERR;
-        }
-        // Shift it out of the buffer, whether it's good or not.
-        //status(STATUS5);
-        //r = shift_frame_out(&rbuf);
-        rbuf_shift(&rbuf, 1);
-    }
-    return ret;
-}
 
 ISR(USART_RX_vect)
 {
-    rbuf.buf[rbuf.end] = UDR0;
-    if (rbuf.end + 1 >= MAX_BUF_SIZE)
+    status(STATUS1);
+    while(!(UCSR0A & (1<<RXC0)));
+    if (rbuf.end >= MAX_BUF_SIZE)
         rbuf.end = 0;
-    else
-        rbuf.end++;
+    rbuf.buf[rbuf.end++] = UDR0;
+    rx_flag = 1;
+    status(0);
 }
 
