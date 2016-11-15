@@ -3,7 +3,7 @@
 
 # BMP - BACON Message Protocol
 
-class bmp():
+class BMP():
     '''
     Here's how this works:
         Uppercase letter: request
