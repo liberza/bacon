@@ -1,6 +1,11 @@
 #!/usr/bin/python3
+from xbee import XBee
+from datetime import datetime, timedelta
+
 
 # BMP - BACON Message Protocol
+
+TIMEOUT = timedelta(seconds=3)
 
 '''
 Here's how this works:
@@ -52,3 +57,53 @@ def parse(msg):
         ret = (None,)
 
     return ret
+
+# Do peering between the sim and payloads, and confirm that the payloads are peered as well.
+def init_peering(p1, p2, xb):
+    p1_peered = False
+    p2_peered = False
+    print("Performing initial peering...")
+    xb.tx(MSG_TYPES['WAT_REQUEST'], XBee.BROADCAST)
+    while ((p1.addr == None) or (p2.addr == None) or (p1_peered == False) or (p2_peered == False)):
+        msg = None
+        start = datetime.now()
+        while (msg == None):
+            now = datetime.now()
+            if (now - start >= TIMEOUT):
+                #print("Waiting for payload response...")
+                xb.tx(MSG_TYPES['WAT_REQUEST'], XBee.BROADCAST)
+                start = datetime.now()
+
+            msg = xb.rx()
+
+        # Got a message.
+        if ((msg != None) and (msg[2] == XBee.FRAME_TYPES['RX'])):
+            parsed = parse(msg)
+            if (parsed[0] == MSG_TYPES['WAT_REPLY']) and (parsed[1] == 'P'):
+                addr = int.from_bytes(parsed[2], byteorder="big")
+                if (p1.addr == None):
+                    p1.addr = addr
+                    print("P1 Address: {:016x}".format(p1.addr))
+                elif ((p2.addr == None) and (addr != p1.addr)):
+                    p2.addr = int.from_bytes(parsed[2], byteorder="big")
+                    print("P2 Address: {:016x}".format(p2.addr))
+                #  else:
+                    #  print("Got an extra address. Is there a third payload?")
+                
+            elif (parsed[0] == MSG_TYPES['WAT_REQUEST']):
+                # Respond.
+                addr = int.from_bytes(parsed[2], byteorder="big")
+                xb.tx(parsed[1], addr)
+            elif (parsed[0] == MSG_TYPES['PEER_ADDR']):
+                payload_addr = int.from_bytes(parsed[1], byteorder="big")
+                peer_addr = int.from_bytes(parsed[2], byteorder="big")
+                if ((payload_addr == p1.addr) and (p1_peered == False)):
+                    print("P1 ({:016x}) peered successfully with P2 ({:016x})".format(payload_addr, peer_addr))
+                    p1_peered = True
+                elif ((payload_addr == p2.addr) and (p2_peered == False)):
+                    print("P2 ({:016x}) peered successfully with P1 ({:016x})".format(payload_addr, peer_addr))
+                    p2_peered = True
+            else:
+                print(msg)
+
+        msg = None

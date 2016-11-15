@@ -13,6 +13,8 @@ class XBee():
         'XOFF':         0x13,
     }
 
+    BROADCAST = 0x000000000000FFFF
+
     FRAME_TYPES = {
         'AT':           0x08,
         'AT_QPV':       0x09,
