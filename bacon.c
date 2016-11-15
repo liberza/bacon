@@ -35,13 +35,6 @@ int main(void)
     for(ever)
     {
         rx(frame);
-        /* while(rx_flag == 0); */
-        /* rx_flag = 0; */
-        /* start = rbuf.start; */
-        /* end = rbuf.end; */
-        /* tx((uint8_t*)(rbuf.buf), MAX_BUF_SIZE, 0x000000000000FFFF, 0x00); */
-        /* tx((uint8_t*)(start), 2, 0x000000000000FFFF, 0x00); */
-        /* tx((uint8_t*)(end), 2, 0x000000000000FFFF, 0x00); */
         if (frame[3] == FRAME_TYPES.RX)
         {
             peer = (uint64_t)frame[4] << 56 |

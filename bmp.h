@@ -11,7 +11,7 @@ struct msg_types_t
     uint8_t WAT_REQUEST;
     uint8_t WAT_REPLY;
     uint8_t UNKNOWN;
-}
+};
 
 const struct msg_types_t MSG_TYPES;
 
@@ -23,8 +23,8 @@ void send_wat_reply(uint64_t addr);
 
 void send_alt_request(uint64_t addr);
 
-uint8_t get_alt(uint8_t *frame, uint16_t frame_len, int32_t *alt);
+int32_t get_alt(uint8_t *frame, uint16_t frame_len);
 
-void send_alt(uint64_t addr);
+void send_alt(uint64_t addr, int32_t alt);
 
 #endif
