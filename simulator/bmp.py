@@ -4,12 +4,21 @@
 # BMP - BACON Message Protocol
 
 class bmp():
+    '''
+    Here's how this works:
+        Uppercase letter: request
+        Lowercase letter: response
+
+    All message types are in MSG_TYPES. Simulator doesn't care about
+    PAYLOAD_ALT. Simulator response to WAT_REQUEST with a WAT_REPLY + "S" for "sim".
+    '''
+
     MSG_TYPES = {
-        'SIM_ALT':      'S',        # simulated altitude.
-        'PAYLOAD_ALT':  'A',        # current payload altitude
+        'SIM_ALT':      's',        # simulated altitude.
+        'PAYLOAD_ALT':  'a',        # current payload altitude
         'ALT_REQUEST':  'R',        # altitude request. includes compensation amount.
         'WAT_REQUEST':  'W',        # 'Who Art Thou' request. like ARP but super simple.
-        'WAT_REPLY':    'R',        # 'Who Art Thou' reply. send "RS" if sim, "RP" if payload.
+        'WAT_REPLY':    'w',        # 'Who Art Thou' reply. send "RS" if sim, "RP" if payload.
     }
 
     def sim_alt_str(alt):
@@ -24,14 +33,19 @@ class bmp():
         if req[15] == MSG_TYPES['ALT_REQUEST']:
             # payload is requesting altitude. req[1:-1] is the time it
             # has opened its valve since the last request, in ms.
-            ret = (MSG_TYPES['ALT_REQUEST'], alt_req[1:-1])
+            ret = (MSG_TYPES['ALT_REQUEST'], alt_req[15:-1])
 
-        else if req[15] == MSG_TYPES['WAT_REQUEST']:
+        elif req[15] == MSG_TYPES['WAT_REQUEST']:
             # ret[1] is the string to send back as a WAT_REPLY.
+            # we are a simulator, hence "S"
             ret = (MSG_TYPES['WAT_REQUEST'], MSG_TYPES['WAT_REPLY'] + "S")
 
-        else if req[15] == MSG_TYPES['WAT_REPLY']:
+        elif req[15] == MSG_TYPES['WAT_REPLY']:
+            # Return the address of the payload that replied.
             ret = (MSG_TYPES['WAT_REPLY'], ret[4:11])
 
         else:
-            return None
+            # Not a bmp message. At least not one we, the simulator, are interested in.
+            ret = None
+
+        return ret
