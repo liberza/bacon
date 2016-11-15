@@ -24,7 +24,8 @@ class Flight():
 
         with open(filename, 'r') as data_file:
             profile = json.load(data_file)
-        self.alts = np.array(profile['data'])
+        # Create an array of int32's. Alt is in decimeters.
+        self.alts = (np.array(profile['data'])*10).astype(np.int32)
         self.timestep = profile['timestep']
         self.times = np.arange(0, self.alts.size*self.timestep, self.timestep)
 
@@ -52,9 +53,12 @@ class Flight():
             
 if __name__ == '__main__':
     # initialize Flights. 'PAYLOAD_X_ID' is the digimesh ID of payload X.
-    fp1 = Flight('profiles/umhab48.json', 5) #5 kg
-    fp2 = Flight('profiles/umhab48.json', 4) #4 kg
-    xbee = XBee.init('/dev/xbee', ‘1200’)  # initialize serial for XBee, 1200baud
+    fp1 = Flight('profiles/umhab52.json', 5) #5 kg
+    for a in fp1.alts:
+        print(a)
+    #fp2 = Flight('profiles/umhab48.json', 4) #4 kg
+    '''
+    xbee = XBee.init('/dev/xbee', 1200)  # initialize serial for XBee, 1200baud
     ft = 0      # flight time starts at 0
     cur_payload = None
     while(True):
@@ -89,4 +93,4 @@ if __name__ == '__main__':
     print(fp.alts.size)
     print(fp.times.size)
     print(fp.alt(24))
-
+    '''
