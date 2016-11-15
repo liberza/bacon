@@ -91,8 +91,6 @@ class XBee():
         # prepend the unescaped delimiter
         frame = bytearray(b'\x7E') + frame
 
-        print(frame)
-
         return self.serial.write(frame)
 
     def rx(self):
