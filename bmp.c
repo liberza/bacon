@@ -9,6 +9,7 @@ const struct msg_types_t MSG_TYPES =
     .ALT_REQUEST    = (uint8_t)'R',
     .WAT_REQUEST    = (uint8_t)'W',
     .WAT_REPLY      = (uint8_t)'w',
+    .PEER_ADDR      = (uint8_t)'p',
     .UNKNOWN        = (uint8_t)'\0'
 };
 
@@ -49,14 +50,25 @@ uint8_t get_wat_type(uint8_t *frame, uint16_t frame_len)
     return ret;
 }
 
-void send_wat_reply(uint64_t addr)
+void send_wat_reply(uint64_t dest)
 {
-    tx((uint8_t*)"wP", 2, addr, 0x00);
+    tx((uint8_t*)"wP", 2, dest, 0x00);
 }
 
-void send_alt_request(uint64_t addr)
+void send_peer_addr(uint64_t addr, uint64_t dest)
 {
-    tx((uint8_t*)"R", 1, addr, 0x00);
+    uint8_t msg[9];
+    msg[0] = 'p';
+    for (uint8_t i = 0; i < 7; i++)
+    {
+        msg[i+1] = (uint8_t)((addr >> (7-i)*8) & 0xFF);
+    }
+    tx(msg, 9, dest, 0x00);
+}
+
+void send_alt_request(uint64_t dest)
+{
+    tx((uint8_t*)"R", 1, dest, 0x00);
 }
 int32_t get_alt(uint8_t *frame, uint16_t frame_len)
 {

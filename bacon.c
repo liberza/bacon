@@ -40,7 +40,7 @@ int main(void)
     for(ever)
     {
         status(STATUS0);
-        if ((sim == (uint64_t)0) && count >= 5)
+        if (((sim == (uint64_t)0) || peer == (uint64_t)0) && count > 2)
         {
             tx((uint8_t*)&MSG_TYPES.WAT_REQUEST, 1, BROADCAST, 0x00);
             count = 0;
@@ -53,6 +53,10 @@ int main(void)
         {
             status(STATUS1);
             send_wat_reply(get_source_addr(frame));
+            if (peer != 0)
+            {
+                send_peer_addr(peer, sim);
+            }
         }
         else if (msg_type == MSG_TYPES.WAT_REPLY)
         {
@@ -64,8 +68,7 @@ int main(void)
                 sim = get_source_addr(frame);
             else
             {
-                status(STATUS3); // invalid WAT reply.
-                tx(&wat_type, 1, BROADCAST, 0x00);
+                status_or(STATUS3); // invalid WAT reply.
             }
         }
         else

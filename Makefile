@@ -126,7 +126,7 @@ fuses:
 flash: $(TARGET).hex 
 	./rst.py
 	$(AVRDUDE) -c $(PROGRAMMER_TYPE) -p $(MCU) $(PROGRAMMER_ARGS) -U flash:w:$<
-	./pwr.py
+	#./pwr.py
 
 ## An alias
 program: flash

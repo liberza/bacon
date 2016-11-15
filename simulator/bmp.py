@@ -17,6 +17,7 @@ MSG_TYPES = {
     'ALT_REQUEST':  'R',        # altitude request. includes compensation amount.
     'WAT_REQUEST':  'W',        # 'Who Art Thou' request. think ARP, but instead of asking for one addr, it asks for all.
     'WAT_REPLY':    'w',        # 'Who Art Thou' reply. send "RS" if sim, "RP" if payload.
+    'PEER_ADDR':    'p',        # Just to prove that the payloads do, in fact, communicate.
 }
 
 def sim_alt_str(alt):
@@ -42,6 +43,9 @@ def parse(msg):
     elif msg_type == MSG_TYPES['WAT_REPLY']:
         # ret[1] is the device type (probably P for payload) and ret[2] is its address.
         ret = (MSG_TYPES['WAT_REPLY'], chr(msg[15]), msg[3:11])
+
+    elif msg_type == MSG_TYPES['PEER_ADDR']:
+        ret = (MSG_TYPES['PEER_ADDR'], msg[3:11], msg[16:-1])
 
     else:
         # Not a bmp message. At least not one we, the simulator, are interested in.
