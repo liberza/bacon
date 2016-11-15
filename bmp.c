@@ -16,9 +16,10 @@ uint8_t get_msg_type(uint8_t *frame, uint16_t frame_len)
 {
     uint8_t ret = MSG_TYPES.UNKNOWN;
     uint8_t t;
+    uint8_t frame_type = get_frame_type(frame);
 
     // Make sure this is an actual RX frame.
-    if ((frame_len >= 16) && frame[3] == FRAME_TYPES.RX)
+    if ((frame_len >= 16) && frame_type == FRAME_TYPES.RX)
     {
         t = frame[15];
         if (t == MSG_TYPES.SIM_ALT)
@@ -38,11 +39,11 @@ uint8_t get_msg_type(uint8_t *frame, uint16_t frame_len)
 uint8_t get_wat_type(uint8_t *frame, uint16_t frame_len)
 {
     uint8_t ret = MSG_TYPES.UNKNOWN;
-    if ((frame_len == FRAME_OHEAD.RX + 2) && (frame[15] == MSG_TYPES.WAT_REPLY))
+    if ((frame_len >= FRAME_OHEAD.RX + 2) && (frame[15] == MSG_TYPES.WAT_REPLY))
     {
         if ((frame[16] == (uint8_t)'P') || (frame[16] == (uint8_t)'S'))
         {
-            ret = frame[16];
+            ret = (uint8_t)frame[16];
         }
     }
     return ret;
@@ -57,7 +58,6 @@ void send_alt_request(uint64_t addr)
 {
     tx((uint8_t*)"R", 1, addr, 0x00);
 }
-
 int32_t get_alt(uint8_t *frame, uint16_t frame_len)
 {
     uint8_t tmp_checksum;

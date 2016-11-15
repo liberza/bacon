@@ -1,6 +1,8 @@
 #!/usr/bin/python3
 import numpy as np
 from datetime import datetime, timedelta
+import time
+import binascii
 
 # local imports
 from payload import Payload
@@ -16,31 +18,40 @@ TIMEOUT = timedelta(seconds=5)
 
 # Send a Who Art Thou request, set addresses for two payloads.
 def wat(p1, p2):
-    while ((p1.addr == None) and (p2.addr == None)):
-        xb.tx(bmp.MSG_TYPES['WAT_REQUEST'], BROADCAST)
+    xb.tx(bmp.MSG_TYPES['WAT_REQUEST'], BROADCAST)
+    while ((p1.addr == None) or (p2.addr == None)):
         msg = None
         start = datetime.now()
         while (msg == None):
             now = datetime.now()
-            if (now - start > TIMEOUT):
+            if (now - start >= TIMEOUT):
+                print("Timeout, resending")
                 xb.tx(bmp.MSG_TYPES['WAT_REQUEST'], BROADCAST)
                 start = datetime.now()
 
             msg = xb.rx()
-            if ((msg != None) and (msg[3] != XBee.FRAME_TYPES['RX'])):
-                msg = None
 
-        if msg != None:
+        if ((msg != None) and (msg[2] == XBee.FRAME_TYPES['RX'])):
             parsed = bmp.parse(msg)
             if (parsed[0] == bmp.MSG_TYPES['WAT_REPLY']) and (parsed[1] == 'P'):
                 if (p1.addr == None):
                     p1.addr = parsed[2]
-                    print(p1.addr)
-                elif (p2.addr == None):
+                    print(binascii.hexlify(p1.addr))
+                elif ((p2.addr == None) and (parsed[2] != p1.addr)):
                     p2.addr = parsed[2]
-                    print(p2.addr)
+                    print(binascii.hexlify(p2.addr))
                 else:
-                    print("This should be impossible. But here we are.")
+                    print("Got P1 addr again.")
+                    #print("This should be impossible. But here we are.")
+            elif (parsed[0] == bmp.MSG_TYPES['WAT_REQUEST']):
+                # Respond.
+                print("Sending WAT reply.")
+                addr = int.from_bytes(parsed[2], byteorder="big")
+                xb.tx(parsed[1], addr)
+            else:
+                print(msg)
+
+        msg = None
     
 
 # Let's simulate some balloons.

@@ -47,7 +47,6 @@ class XBee():
         # need to do some initialization here.
         # enter AT mode and get the address of the xbee. upper 32 bits:"ATSH" lower 32 bits:"ATSL"
         # also get the max payload size with "ATNP"
-        self.addr = 0x13A2004146764D
         self.max_payload = 100
 
     def tx(self, data, dest=0x000000000000FFFF, opts=0x00):
@@ -90,6 +89,8 @@ class XBee():
 
         # prepend the unescaped delimiter
         frame = bytearray(b'\x7E') + frame
+
+        #print(binascii.hexlify(frame))
 
         return self.serial.write(frame)
 

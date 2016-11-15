@@ -7,6 +7,7 @@
 #include "serial.h"
 #include "status.h"
 #include "solenoid.h"
+#include "bmp.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -25,29 +26,50 @@ int main(void)
     serial_init(BAUD_PRESCALE, DATA_BITS_8, STOP_BITS_1, PARITY_DISABLED);
     xbee_init();
     solenoid_init();
-    uint64_t peer;
-    uint16_t data_len;
+    uint64_t peer = (uint64_t)0;
+    uint64_t sim = (uint64_t)0;
+    uint8_t wat_type;
+    uint16_t frame_len;
     uint8_t frame[MAX_BUF_SIZE];
-    uint16_t start, end;
+    uint8_t msg_type;
+    uint8_t count = 0;
 
     sei();
 
+    tx((uint8_t*)&MSG_TYPES.WAT_REQUEST, 1, BROADCAST, 0x00);
     for(ever)
     {
-        rx(frame);
-        if (frame[3] == FRAME_TYPES.RX)
+        status(STATUS0);
+        if ((sim == (uint64_t)0) && count >= 5)
         {
-            peer = (uint64_t)frame[4] << 56 |
-                   (uint64_t)frame[5] << 48 |
-                   (uint64_t)frame[6] << 40 |
-                   (uint64_t)frame[7] << 32 |
-                   (uint64_t)frame[8] << 24 |
-                   (uint64_t)frame[9] << 16 |
-                   (uint64_t)frame[10] << 8 |
-                   (uint64_t)frame[11];
-
-            data_len = (((uint16_t)frame[1]<<8)|(uint16_t)frame[2]);
-            tx(frame+FRAME_OHEAD.RX-1, data_len-FRAME_OHEAD.RX+4, peer, 0x00);
+            tx((uint8_t*)&MSG_TYPES.WAT_REQUEST, 1, BROADCAST, 0x00);
+            count = 0;
         }
+        rx(frame);
+        status(0);
+        frame_len = get_frame_len(frame);
+        msg_type = get_msg_type(frame, frame_len);
+        if (msg_type == MSG_TYPES.WAT_REQUEST)
+        {
+            status(STATUS1);
+            send_wat_reply(get_source_addr(frame));
+        }
+        else if (msg_type == MSG_TYPES.WAT_REPLY)
+        {
+            status(STATUS2);
+            wat_type = get_wat_type(frame, frame_len);
+            if (wat_type == 'P')
+                peer = get_source_addr(frame);
+            else if (wat_type == 'S')
+                sim = get_source_addr(frame);
+            else
+            {
+                status(STATUS3); // invalid WAT reply.
+                tx(&wat_type, 1, BROADCAST, 0x00);
+            }
+        }
+        else
+            status(STATUS4);
+        count++;
     }
 }

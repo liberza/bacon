@@ -134,7 +134,6 @@ uint8_t rx(uint8_t *frame)
         for (int i=0; i<MAX_BUF_SIZE; i++)
             frame[i] = 0x00;
         ret = find_frame(&rbuf, frame);
-        status(STATUS0);
     }
     while (ret != 0);
     return ret;
@@ -160,7 +159,6 @@ uint8_t find_frame(volatile rbuf_t *r, uint8_t *frame)
     shift_to_delim(r);
     if (rbuf_read(r, 0) == SPECIAL_BYTES.FRAME_DELIM)
     {
-        status_or(STATUS1);
         buf_len = rbuf_len(r);
         for (int i=0; i < buf_len; i++)
         {
@@ -173,7 +171,6 @@ uint8_t find_frame(volatile rbuf_t *r, uint8_t *frame)
     }
     else
     {
-        status_or(STATUS2);
         // could not find frame delimiter.
         ret = FRAME_DELIM_ERR;
     }
@@ -195,7 +192,6 @@ uint8_t validate_frame(uint8_t *frame, uint16_t buf_len)
         if (frame_len > MAX_BUF_SIZE)
         {
             // Frame too large for the buffer.
-            status_or(STATUS3);
             shift_frame_out(&rbuf);
             ret = FRAME_SIZE_ERR;
         }
@@ -216,10 +212,8 @@ uint8_t validate_frame(uint8_t *frame, uint16_t buf_len)
         {
             ret = FRAME_SUM_ERR;
             tx(frame, buf_len, 0x000000000000FFFF, 0x00);
-            status_or(STATUS4);
         }
         // Shift it out of the buffer, whether it's good or not.
-        status_or(STATUS5);
         rbuf_shift(&rbuf, frame_len);
         /* shift_frame_out(&rbuf); */
     }
@@ -300,6 +294,35 @@ uint16_t unescape(uint8_t *frame, uint16_t frame_len)
         /* i++; */
     }
     return j;
+}
+
+uint64_t get_source_addr(uint8_t *frame)
+{
+    if (get_frame_type(frame) == FRAME_TYPES.RX)
+    {
+        return  (uint64_t)frame[4] << 56 |
+                (uint64_t)frame[5] << 48 |
+                (uint64_t)frame[6] << 40 |
+                (uint64_t)frame[7] << 32 |
+                (uint64_t)frame[8] << 24 |
+                (uint64_t)frame[9] << 16 |
+                (uint64_t)frame[10] << 8 |
+                (uint64_t)frame[11];
+    }
+    else
+    {
+        return (uint64_t)1;
+    }
+}
+
+uint8_t get_frame_type(uint8_t *frame)
+{
+    return frame[3];
+}
+
+uint16_t get_frame_len(uint8_t *frame)
+{
+    return (((uint16_t)frame[1]<<8) | (uint16_t)frame[2]) + 4;
 }
 
 

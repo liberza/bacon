@@ -20,6 +20,8 @@
 #define FRAME_SUM_ERR (uint8_t)(0x04)
 #define FRAME_RX_INCOMPLETE (uint8_t)(0x08)
 
+#define BROADCAST (uint64_t)(0x000000000000FFFF)
+
 //! Buffer for serial RX interrupt service routne.
 volatile extern rbuf_t rbuf;
 
@@ -80,6 +82,12 @@ uint8_t find_frame(volatile rbuf_t *r, uint8_t *frame);
 uint8_t shift_frame_out(volatile rbuf_t *r);
 
 uint8_t shift_to_delim(volatile rbuf_t *r);
+
+uint64_t get_source_addr(uint8_t *frame);
+
+uint8_t get_frame_type(uint8_t *frame);
+
+uint16_t get_frame_len(uint8_t *frame);
 
 //! ISR for writing bytes and swapping buffers when frame delimiter received.
 ISR(USART_RX_vect);

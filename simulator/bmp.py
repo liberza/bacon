@@ -28,19 +28,20 @@ def parse(msg):
     if msg[2] != 0x90:
         raise Exception("parse_request(): Non-RX frame passed!")
 
-    if msg[14] == MSG_TYPES['ALT_REQUEST']:
+    msg_type = chr(msg[14])
+    if msg_type == MSG_TYPES['ALT_REQUEST']:
         # payload is requesting altitude. msg[14:-1] is the time it
         # has opened its valve since the last request, in ms.
         ret = (MSG_TYPES['ALT_REQUEST'], msg[14:-1])
 
-    elif msg[14] == MSG_TYPES['WAT_REQUEST']:
-        # ret[1] is the string to send back as a WAT_REPLY.
+    elif msg_type == MSG_TYPES['WAT_REQUEST']:
+        # ret[1] is the string to send back as a WAT_REPLY. ret[2] is the addr to respond to.
         # we are a simulator, hence "S"
-        ret = (MSG_TYPES['WAT_REQUEST'], MSG_TYPES['WAT_REPLY'] + "S")
+        ret = (MSG_TYPES['WAT_REQUEST'], MSG_TYPES['WAT_REPLY'] + "S", msg[3:11])
 
-    elif msg[14] == MSG_TYPES['WAT_REPLY']:
+    elif msg_type == MSG_TYPES['WAT_REPLY']:
         # ret[1] is the device type (probably P for payload) and ret[2] is its address.
-        ret = (MSG_TYPES['WAT_REPLY'], msg[16], ret[3:10])
+        ret = (MSG_TYPES['WAT_REPLY'], chr(msg[15]), msg[3:11])
 
     else:
         # Not a bmp message. At least not one we, the simulator, are interested in.
