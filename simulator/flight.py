@@ -54,9 +54,7 @@ class Flight():
 if __name__ == '__main__':
     # initialize Flights. 'PAYLOAD_X_ID' is the digimesh ID of payload X.
     fp1 = Flight('profiles/umhab52.json', 5) #5 kg
-    for a in fp1.alts:
-        print(a)
-    #fp2 = Flight('profiles/umhab48.json', 4) #4 kg
+    fp2 = Flight('profiles/umhab48.json', 4) #4 kg
     '''
     xbee = XBee.init('/dev/xbee', 1200)  # initialize serial for XBee, 1200baud
     ft = 0      # flight time starts at 0
