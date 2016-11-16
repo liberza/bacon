@@ -10,7 +10,7 @@
 #define CMD_ADC_READ 	0x00
 #define CMD_ADC_CONV	0x40
 #define CMD_ADC_D1		0x00
-#define CMD_ADC_D1		0x10
+#define CMD_ADC_D2		0x10
 #define CMD_ADC_256		0x00
 #define CMD_ADC_512		0x02
 #define CMD_ADC_1024	0x04
