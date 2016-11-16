@@ -1,34 +1,26 @@
 #include "alt.h"
 
-void spi_master_init(void)
+void spi_command_send(char cmd)
 {
-	// MOSI, SCK, and SS as output
-	DDRB |= (1 << PB3)|(1 << PB5)|(1 << PB2); 
-	
-	// SS to high (disconnects slave)
-	PORTB |= (1 << PB2);
 
-	// enable SPI (SPE)
-	// set to master (MSTR)
-	// SCK to f/16 (SPR0)
-	SPCR = (1 << SPE)|(1 << MSTR)|(1 << SPR0);
 }
 
-uint8_t measure(uint8_t buffer)
-{	
-	// SS to low (connects slave)
-	PORTB &= ~(1 << PB2);
-	
-	// loads SPI data register into buffer
-	buffer = SPDR;
-	
-	// waits until transaction completes
-	while (!(SPSR & (1 << SPIF)));
+void command_reset(void)
+{
 
-	// SS to high again (disconnects slave)
-	PORTB |= (1 << PB2);
-
-	return buffer;
 }
 
+unsigned long cmd_adc(char cmd)
+{
 
+}
+
+unsigned int cmd_prom(char coef_num)
+{
+
+}
+
+unsigned int crc4(unsigned int n_prom[])
+{
+
+}
