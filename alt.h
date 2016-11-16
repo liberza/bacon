@@ -2,7 +2,7 @@
 #define ALT_H
 
 #include <avr/io.h>
-#include <interrupt.h>
+#include <avr/interrupt.h>
 #include <util/delay.h>
 #include <util/atomic.h>
 
