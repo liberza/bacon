@@ -17,11 +17,11 @@ PAYLOAD_ALT. Simulator response to WAT_REQUEST with a WAT_REPLY + "S" for "sim".
 '''
 
 MSG_TYPES = {
-    'SIM_ALT':      's',        # simulated altitude.
     'PAYLOAD_ALT':  'a',        # current payload altitude
-    'ALT_REQUEST':  'R',        # altitude request. includes compensation amount.
+    'ALT_REQUEST':  'S',        # simulated altitude request. includes compensation amount.
+    'SIM_ALT':      's',        # simulated altitude.
     'WAT_REQUEST':  'W',        # 'Who Art Thou' request. think ARP, but instead of asking for one addr, it asks for all.
-    'WAT_REPLY':    'w',        # 'Who Art Thou' reply. send "RS" if sim, "RP" if payload.
+    'WAT_REPLY':    'w',        # 'Who Art Thou' reply. send "wS" if sim, "wP" if payload.
     'PEER_ADDR':    'p',        # Just to prove that the payloads do, in fact, communicate.
 }
 
@@ -38,7 +38,7 @@ def parse(msg):
     if msg_type == MSG_TYPES['ALT_REQUEST']:
         # payload is requesting altitude. msg[14:-1] is the time it
         # has opened its valve since the last request, in ms.
-        ret = (MSG_TYPES['ALT_REQUEST'], msg[14:-1])
+        ret = (MSG_TYPES['ALT_REQUEST'], msg[3:11], msg[14:-1])
 
     elif msg_type == MSG_TYPES['WAT_REQUEST']:
         # ret[1] is the string to send back as a WAT_REPLY. ret[2] is the addr to respond to.
@@ -64,13 +64,14 @@ def init_peering(p1, p2, xb):
     p2_peered = False
     print("Performing initial peering...")
     xb.tx(MSG_TYPES['WAT_REQUEST'], XBee.BROADCAST)
+    # Loop until we confirm the addresses of both payloads, and that they peered with eachother.
     while ((p1.addr == None) or (p2.addr == None) or (p1_peered == False) or (p2_peered == False)):
         msg = None
         start = datetime.now()
         while (msg == None):
             now = datetime.now()
             if (now - start >= TIMEOUT):
-                #print("Waiting for payload response...")
+                # Resend the WAT request to the network
                 xb.tx(MSG_TYPES['WAT_REQUEST'], XBee.BROADCAST)
                 start = datetime.now()
 
@@ -87,11 +88,9 @@ def init_peering(p1, p2, xb):
                 elif ((p2.addr == None) and (addr != p1.addr)):
                     p2.addr = int.from_bytes(parsed[2], byteorder="big")
                     print("P2 Address: {:016x}".format(p2.addr))
-                #  else:
-                    #  print("Got an extra address. Is there a third payload?")
                 
             elif (parsed[0] == MSG_TYPES['WAT_REQUEST']):
-                # Respond.
+                # Respond, saying "I am the simulator".
                 addr = int.from_bytes(parsed[2], byteorder="big")
                 xb.tx(parsed[1], addr)
             elif (parsed[0] == MSG_TYPES['PEER_ADDR']):

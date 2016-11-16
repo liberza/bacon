@@ -12,6 +12,8 @@ class Payload():
     addr = None
     time_elapsed = 0.0
     time_launched = 0.0
+    
+    # (Latest mass / Original mass) * Original timestep
 
     def __init__(self, filename, mass):
         self.parse_profile(filename)
@@ -26,7 +28,9 @@ class Payload():
             profile = json.load(data_file)
         # Create an array of int32's. Alt is in decimeters.
         self.alts = (np.array(profile['data'])*10).astype(np.int32)
-        self.timestep = profile['timestep']
+        self.ref_timestep = profile['timestep']
+        self.timestep = self.ref_timestep
+        self.ref_mass = profile['mass']
         self.times = np.arange(0, self.alts.size*self.timestep, self.timestep)
 
     def alt(self):
@@ -50,6 +54,13 @@ class Payload():
             alt = np.interp(index, self.times, self.alts)
 
         return alt
+
+    # Did curve-fitting on HabHub data to come up with this function.
+    # Can probably do better, but this works well enough for now.
+    def adjust_timestep(current_mass):
+        x = self.ref_mass / current_mass
+        adj = -0.0815243*x*x*x + 0.1355*x*x - 0.391461*x + 1.33748611
+        self.timestep = self.ref_timestep * adj
             
 if __name__ == '__main__':
     # initialize Flights. 'PAYLOAD_X_ID' is the digimesh ID of payload X.

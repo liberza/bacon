@@ -24,7 +24,7 @@ void send_wat_reply(uint64_t dest);
 
 void send_peer_addr(uint64_t addr, uint64_t dest);
 
-void send_alt_request(uint64_t dest);
+void send_alt_request(uint64_t dest, uint16_t time);
 
 int32_t get_alt(uint8_t *frame, uint16_t frame_len);
 
