@@ -10,14 +10,16 @@ class Payload():
     '''
 
     addr = None
-    time_elapsed = 0.0
-    time_launched = 0.0
+    name = "Payload"
+    time_index = 0.0 # s
+    timestep = 1.0 # gets larger as ballast is dropped.
     
-    # (Latest mass / Original mass) * Original timestep
-
     def __init__(self, filename, mass):
         self.parse_profile(filename)
-        self.mass = mass
+        self.initial_mass = mass # kg
+        self.mass = self.initial_mass # kg
+        # ballast is included in total mass.
+        self.initial_ballast = 500 # ml
 
     def parse_profile(self, filename):
         '''
@@ -28,10 +30,9 @@ class Payload():
             profile = json.load(data_file)
         # Create an array of int32's. Alt is in decimeters.
         self.alts = (np.array(profile['data'])*10).astype(np.int32)
-        self.ref_timestep = profile['timestep']
-        self.timestep = self.ref_timestep
-        self.ref_mass = profile['mass']
-        self.times = np.arange(0, self.alts.size*self.timestep, self.timestep)
+        self.ref_timestep = profile['timestep'] # s
+        self.ref_mass = profile['mass'] # s
+        self.times = np.arange(0, self.alts.size*self.ref_timestep, self.ref_timestep)
 
     def alt(self):
         '''
@@ -40,7 +41,7 @@ class Payload():
         of the flight.
         '''
 
-        index = self.time_elapsed / self.timestep
+        index = self.time_elapsed
 
         # alt = None if seconds is outside of the flight time.
         if (index > self.alts.size):
@@ -53,19 +54,30 @@ class Payload():
             alt = np.empty
             alt = np.interp(index, self.times, self.alts)
 
-        return alt
+        return int(alt)
 
-    # Did curve-fitting on HabHub data to come up with this function.
-    # Can probably do better, but this works well enough for now.
-    def adjust_timestep(current_mass):
-        x = self.ref_mass / current_mass
-        adj = -0.0815243*x*x*x + 0.1355*x*x - 0.391461*x + 1.33748611
-        self.timestep = self.ref_timestep * adj
-            
+    # Did curve-fitting on HabHub data to come up with timestep adjustment.
+    def adjust_time(time_elapsed_delta):
+        x = self.ref_mass / self.mass
+        self.timestep = -0.0815243*x*x*x + 0.1355*x*x - 0.391461*x + 1.33748611
+        self.time_index += time_elapsed_delta*self.timestep
+        
+
+    def drop_mass(ballast_time_ms):
+        # experimental results show 4.925ml/s drain rate. with current setup.
+        # we give it random +-10% error, because the payload is getting
+        # blasted by high winds and the ballast is sloshing around.
+        noise = random.uniform(0.9, 1.1)
+        new_mass = self.mass - (noise*ballast_time_ms*0.004925)
+        if (new_mass > self.initial_mass - self.initial_ballast):
+            self.mass = new_mass
+        else:
+            print("Out of ballast!")
+
 if __name__ == '__main__':
     # initialize Flights. 'PAYLOAD_X_ID' is the digimesh ID of payload X.
-    fp1 = Payload('profiles/umhab52.json', 5) #5 kg
-    fp2 = Payload('profiles/umhab48.json', 4) #4 kg
+    fp1 = Payload('profiles/umhab52.json', 1.2)
+    fp2 = Payload('profiles/umhab48.json', 1.4)
     '''
     xbee = XBee.init('/dev/xbee', 1200)  # initialize serial for XBee, 1200baud
     ft = 0      # flight time starts at 0

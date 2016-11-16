@@ -62,7 +62,6 @@ def parse(msg):
 def init_peering(p1, p2, xb):
     p1_peered = False
     p2_peered = False
-    print("Performing initial peering...")
     xb.tx(MSG_TYPES['WAT_REQUEST'], XBee.BROADCAST)
     # Loop until we confirm the addresses of both payloads, and that they peered with eachother.
     while ((p1.addr == None) or (p2.addr == None) or (p1_peered == False) or (p2_peered == False)):
