@@ -19,6 +19,7 @@
 #define ever ;;
 
 volatile uint8_t rx_flag;
+volatile uint32_t timer;
 
 int main(void)
 {
@@ -32,18 +33,24 @@ int main(void)
     uint16_t frame_len;
     uint8_t frame[MAX_BUF_SIZE];
     uint8_t msg_type;
-    uint8_t count = 0;
+
+    // timer init
+    TCCR1B |= (1<<WGM12);
+    TCCR1B |= (1<<CS11)|(1<<CS10);
+    OCR1A = 125;
+    TIMSK1 |= (1<<OCIE1A);
 
     sei();
 
     tx((uint8_t*)&MSG_TYPES.WAT_REQUEST, 1, BROADCAST, 0x00);
+    timer = 0;
     for(ever)
     {
         status(STATUS0);
-        if (((sim == (uint64_t)0) || peer == (uint64_t)0) && count > 2)
+        if (((sim == 0) || peer == 0) && timer >= 3000)
         {
             tx((uint8_t*)&MSG_TYPES.WAT_REQUEST, 1, BROADCAST, 0x00);
-            count = 0;
+            timer = 0;
         }
         rx(frame);
         status(0);
@@ -73,6 +80,10 @@ int main(void)
         }
         else
             status(STATUS4);
-        count++;
     }
+}
+
+ISR(TIMER1_COMPA_vect)
+{
+    timer++;
 }
