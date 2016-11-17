@@ -50,5 +50,8 @@ unsigned int cmd_prom(
 	char coef_num
 	);
 
+double read_sensor(
+	void
+	);
 
 #endif

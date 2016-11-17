@@ -9,7 +9,7 @@ void spi_cmd_send(char cmd)
 void cmd_reset(void)
 {
 	csb_lo();
-	spi_command_send(CMD_RESET);
+	spi_cmd_send(CMD_RESET);
 	_delay_ms(3);
 	csb_hi();
 }
@@ -80,4 +80,45 @@ unsigned int cmd_prom(char coef_num)
 	return rC;
 }
 
+double read_sensor(void)
+{
+	unsigned long D1;
+	unsigned long D2;
+	unsigned int C[8];
+	double P;
+	//double T;
+	double dT;
+	double OFF;
+	double SENS;
 
+	int i;
+
+	// SS, MOSI, and SCK as outputs
+	DDRB |= (1 << PB3) | (1 << PB5) | (1 << PB2);
+	
+	// MISO as input
+	DDRB &= ~(1 << PB4);
+	
+	// SPI settings: master, mode 0, f/4
+	SPCR = (1 << SPE) | (1 << MSTR);
+	
+	// module should be reset upon power up.
+	// cmd_reset(); 
+
+	for ( i = 0; i < 8; i++){
+		C[i] = cmd_prom(i);
+	}
+	
+	// read temperature (uncompensated)
+	D1 = cmd_adc(CMD_ADC_D1 + CMD_ADC_256);
+	D2 = cmd_adc(CMD_ADC_D2 + CMD_ADC_4096);
+
+	dT = D2 - C[5]*pow(2,8);
+	OFF = C[2]*pow(2,17) + dT*C[4]/pow(2,6);
+	SENS = C[1]*pow(2,16) + dT*C[3]/pow(2,7);
+
+	//T = (2000 + (dT*C[6])/pow(2,23))/100;
+	P = (((D1*SENS)/pow(2,21) - OFF)/pow(2,15))/100;
+
+	return P;
+}
