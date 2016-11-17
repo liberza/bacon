@@ -22,7 +22,7 @@ class Payload():
         self.initial_mass = mass # kg
         self.mass = self.initial_mass # kg
         # ballast is included in total mass.
-        self.initial_ballast = 500 # ml
+        self.initial_ballast = 0.5 # liters 
         self.name = name
 
     def parse_profile(self, filename):
@@ -58,8 +58,6 @@ class Payload():
             alt = np.empty
             alt = np.interp(self.time_index, self.times, self.alts)
 
-        self.last_alt = alt
-
         return alt
 
     # Did curve-fitting on HabHub data to come up with timestep adjustment.
@@ -76,11 +74,11 @@ class Payload():
         # we give it random +-10% error, because the payload is getting
         # blasted by high winds and the ballast is sloshing around.
         noise = random.uniform(0.9, 1.1)
-        new_mass = self.mass - (noise*ballast_time_ms*0.004925)
+        new_mass = self.mass - (noise*ballast_time_ms*0.004925/1000)
         if (new_mass > self.initial_mass - self.initial_ballast):
             self.mass = new_mass
         else:
-            print("Out of ballast!")
+            self.mass = self.initial_mass - self.initial_ballast
 
 if __name__ == '__main__':
     # initialize Flights. 'PAYLOAD_X_ID' is the digimesh ID of payload X.

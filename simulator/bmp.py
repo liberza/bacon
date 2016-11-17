@@ -51,7 +51,10 @@ def parse(msg):
         ret = (MSG_TYPES['WAT_REPLY'], chr(msg[15]), msg[3:11])
 
     elif msg_type == MSG_TYPES['PEER_ADDR']:
-        ret = (MSG_TYPES['PEER_ADDR'], msg[3:11], msg[16:-1])
+        ret = (MSG_TYPES['PEER_ADDR'], msg[3:11], msg[15:-1])
+
+    elif msg_type == MSG_TYPES['PAYLOAD_ALT']:
+        ret = (MSG_TYPES['PAYLOAD_ALT'], msg[15:-1])
 
     else:
         # Not a bmp message. At least not one we, the simulator, are interested in.

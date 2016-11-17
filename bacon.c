@@ -17,6 +17,7 @@
 #define USART_BAUDRATE 1200
 #define BAUD_PRESCALE (((F_CPU / (USART_BAUDRATE * 16UL))) - 1)
 #define ever ;;
+#define RX_TIMEOUT 1453
 
 int main(void)
 {
@@ -32,6 +33,7 @@ int main(void)
     uint8_t frame[MAX_BUF_SIZE];
     uint8_t msg_type;
     uint16_t ballast_time = 0;
+    uint8_t send_ballast = 0;
 
     int32_t alt = INT32_MIN;
     int32_t peer_alt = INT32_MIN;
@@ -48,7 +50,7 @@ int main(void)
         while (initial_alt == INT32_MIN)
         {
             status(STATUS0);
-            if (((sim == 0) || peer == 0) && peer_timer >= 5000)
+            if (((sim == 0) || peer == 0) && peer_timer >= 5500)
             {
                 tx((uint8_t*)&MSG_TYPES.WAT_REQUEST, 1, BROADCAST, 0x00);
                 peer_timer = 0;
@@ -60,7 +62,7 @@ int main(void)
             }
             // Try rx, timeout if over 3s
             timer = 0;
-            if (!rx(frame, 3000))
+            if (!rx(frame, RX_TIMEOUT))
             {
                 status(0);
                 frame_len = get_frame_len(frame);
@@ -89,25 +91,34 @@ int main(void)
             }
         }
         alt = initial_alt;
-        send_sim_alt_request(sim, 0);
         send_payload_alt_request(peer, initial_alt);
+        send_sim_alt_request(sim, 0);
         timer = 0;
         peer_timer = 0;
         sim_timer = 0;
         for(ever)
         {
+            if (sim_timer >= 1755)
+            {
+                if (send_ballast)
+                {
+                    send_sim_alt_request(sim, ballast_time);
+                    send_ballast = 0;
+                }
+                else
+                {
+                    send_sim_alt_request(sim, 0);
+                }
+
+                sim_timer = 0;
+            }
             if (peer_timer >= 20000)
             {
                 send_payload_alt_request(peer, alt);
                 peer_timer = 0;
             }
-            if (sim_timer >= 5000)
-            {
-                send_sim_alt_request(sim, ballast_time);
-                sim_timer = 0;
-            }
             timer = 0;
-            if(!rx(frame, 2000))
+            if(!rx(frame, RX_TIMEOUT))
             {
                 frame_len = get_frame_len(frame);
                 msg_type = get_msg_type(frame, frame_len);
@@ -120,12 +131,12 @@ int main(void)
                 {
                     status(STATUS2);
                     peer_alt = get_alt(frame, frame_len);
-                    if (alt > 1750)
+                    // Check that we rose 175m from our start.
+                    if (alt - initial_alt > 1750)
                     {
-                        // uint16_t on_time = control(alt, peer_alt);
-                        solenoid_timer = 0;
-                        // activate_solenoid(on_time);
-                        
+                        send_ballast = 1;
+                        ballast_time = control(alt, peer_alt);
+                        activate_solenoid(ballast_time);
                     }
                 }
                 else if (msg_type == MSG_TYPES.PAYLOAD_ALT_REQUEST)

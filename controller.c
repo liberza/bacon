@@ -1,6 +1,8 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <stdlib.h>
+#include "xbee.h"
+#include "bmp.h"
 
 #include "controller.h"
 
@@ -40,26 +42,32 @@ void activate_solenoid(uint16_t on_time)
 
 void deactivate_solenoid()
 {
+    solenoid_on = 0;
     PORTB &= ~(1 << PB1);
 }
 
-uint16_t control( int32_t alt, int32_t peer_alt)
+uint16_t control(int32_t alt, int32_t peer_alt)
 {
-	uint16_t release_time;
-	int32_t distance;
-	
-	distance = peer_alt - alt;
+    uint16_t release_time = 0;
+    int32_t distance;
 
-	if (distance > 20){
-		release_time = distance / prop_scaler;
-		release_time /= 0.15;
-		release_time *= 100;
-		release_time /= pour_rate;
-	}
+    distance = alt - peer_alt;
 
-	else release_time = 0;
+    send_alt(0x0013A20041467650, distance);
+    // Greater than 100 decimeters
+    if (distance > 100)
+    {
+        /* release_time = distance / PROP_SCALER; */
+        /* release_time /= 1.5;    // gain 1.5 decimeters per second per */
+        /* release_time *= 100;    // 100 grams of weight lost */
+        /* release_time /= POUR_RATE; */
+        release_time = distance * 5;
+    }
 
-	return release_time;
+    if (release_time > 12000)
+        release_time = 12000;
+
+    return release_time;
 }
 
 ISR(TIMER1_COMPA_vect)
@@ -68,9 +76,9 @@ ISR(TIMER1_COMPA_vect)
     timer++;
     sim_timer++;
     peer_timer++;
-    /* if (solenoid_on && (solenoid_timer >= solenoid_on_time)) */
-    /* { */
-        /* deactivate_solenoid(); */
-        /* solenoid_on = 0; */
-    /* } */
+    solenoid_timer++;
+    if (solenoid_on && (solenoid_timer >= solenoid_on_time))
+    {
+        deactivate_solenoid();
+    }
 }

@@ -94,7 +94,8 @@ int32_t get_alt(uint8_t *frame, uint16_t frame_len)
 {
     uint8_t tmp_checksum;
     int32_t alt = INT32_MIN;
-    if ((frame_len > FRAME_OHEAD.RX + 2) && (frame[15] == MSG_TYPES.SIM_ALT))
+    if ((frame_len > FRAME_OHEAD.RX + 2) && 
+        ((frame[15]==MSG_TYPES.SIM_ALT) || (frame[15]==MSG_TYPES.PAYLOAD_ALT)))
     {
         tmp_checksum = frame[frame_len-1];
         frame[frame_len-1] = (uint8_t)'\0';

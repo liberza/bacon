@@ -10,8 +10,8 @@ from xbee import XBee
 import bmp
 
 # make this commandline args at some point. not right now.
-MASS1 = 4.75
-MASS2 = 5.25
+MASS1 = 2.8
+MASS2 = 3.2
 PROFILE = "profiles/umhab52.json"
 
 # Let's simulate some balloons.
@@ -72,13 +72,13 @@ if __name__ == "__main__":
             # Send them their current alt.
             if (cur_p.alt() is not None):
                 timestamp = datetime.fromtimestamp(cur_time).strftime("[%H:%M:%S]")
-                alt = cur_p.alt()
-                alt_m = alt/10.0
+                alt_m = cur_p.alt()/10.0
                 speed = (alt_m-last_alt_m)/(cur_time-last_time)
-                if (speed):
-                    print("{0} Alt req from {1}: {2}m, {3}m/s".format(timestamp,cur_p.name,alt_m,speed))
-                else:
-                    print("{0} Alt req from {1}: {2}m".format(timestamp,cur_p.name,alt_m))
+                if (speed == None):
+                    speed = 0
+                print("{0} {1}: alt={2:.1f}m speed={3:.2f}m/s mass={4:.3f}kg drop_time={5}".format(timestamp,cur_p.name,alt_m,speed,cur_p.mass,ballast_time_ms))
+                alt = cur_p.alt()
+                cur_p.last_alt = alt
                 xb.tx("s" + str(int(alt)), cur_p.addr)
             else:
                 if (cur_p.addr == p1.addr):
@@ -94,3 +94,14 @@ if __name__ == "__main__":
                 time_launched = time.time()
                 time_elapsed = 0
                 print("Launched!")
+        elif (msg_type == bmp.MSG_TYPES['PAYLOAD_ALT']):
+            if (addr == p1.addr):
+                p1_ready = True
+                cur_p = p1
+            elif (addr == p2.addr):
+                p2_ready = True
+                cur_p = p2
+            else:
+                print("Another payload?")
+                continue
+            print(cur_p.name + " says one alt is " + parsed[1].decode())
