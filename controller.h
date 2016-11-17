@@ -1,6 +1,9 @@
 #ifndef TIMER_H
 #define TIMER_H
 
+#define pour_rate	4.92893	// pour rate in mL/s
+#define prop_scaler	600		// divider in s
+
 volatile uint16_t timer;
 volatile uint16_t peer_timer;
 volatile uint16_t sim_timer;
