@@ -4,13 +4,14 @@
 
 const struct msg_types_t MSG_TYPES =
 {
-    .SIM_ALT        = (uint8_t)'s',
-    .PAYLOAD_ALT    = (uint8_t)'a',
-    .ALT_REQUEST    = (uint8_t)'S',
-    .WAT_REQUEST    = (uint8_t)'W',
-    .WAT_REPLY      = (uint8_t)'w',
-    .PEER_ADDR      = (uint8_t)'p',
-    .UNKNOWN        = (uint8_t)'\0'
+    .SIM_ALT_REQUEST        = (uint8_t)'S',
+    .SIM_ALT                = (uint8_t)'s',
+    .PAYLOAD_ALT_REQUEST    = (uint8_t)'A',
+    .PAYLOAD_ALT            = (uint8_t)'a',
+    .WAT_REQUEST            = (uint8_t)'W',
+    .WAT_REPLY              = (uint8_t)'w',
+    .PEER_ADDR              = (uint8_t)'p',
+    .UNKNOWN                = (uint8_t)'\0'
 };
 
 uint8_t get_msg_type(uint8_t *frame, uint16_t frame_len)
@@ -27,8 +28,10 @@ uint8_t get_msg_type(uint8_t *frame, uint16_t frame_len)
             ret = MSG_TYPES.SIM_ALT;
         else if (t == MSG_TYPES.PAYLOAD_ALT)
             ret = MSG_TYPES.PAYLOAD_ALT;
-        else if (t == MSG_TYPES.ALT_REQUEST)
-            ret = MSG_TYPES.ALT_REQUEST;
+        else if (t == MSG_TYPES.SIM_ALT_REQUEST)
+            ret = MSG_TYPES.SIM_ALT_REQUEST;
+        else if (t == MSG_TYPES.PAYLOAD_ALT_REQUEST)
+            ret = MSG_TYPES.PAYLOAD_ALT_REQUEST;
         else if (t == MSG_TYPES.WAT_REQUEST)
             ret = MSG_TYPES.WAT_REQUEST;
         else if (t == MSG_TYPES.WAT_REPLY)
@@ -66,7 +69,7 @@ void send_peer_addr(uint64_t addr, uint64_t dest)
     tx(msg, 9, dest, 0x00);
 }
 
-void send_alt_request(uint64_t dest, uint16_t time)
+void send_sim_alt_request(uint64_t dest, uint16_t time)
 {
     // time is the time the valve was open for between now and the last request.
     uint8_t msg[7]; // one 'R', time up to 65535ms, and nul terminator.
@@ -75,6 +78,18 @@ void send_alt_request(uint64_t dest, uint16_t time)
     // transmit, don't care about nul terminator
     tx(msg, 6, dest, 0x00);
 }
+
+
+void send_payload_alt_request(uint64_t dest, uint32_t alt)
+{
+    // 1 type byte, 1 sign byte, 10 32-bit signed int bytes, 1 nul terminator.
+    uint8_t msg[13]; 
+    // left justify, make sure it takes up 5 chars
+    sprintf((char*)msg, "A%-11ld", (signed long)alt);
+    // transmit, don't care about nul terminator
+    tx(msg, 12, dest, 0x00);
+}
+
 int32_t get_alt(uint8_t *frame, uint16_t frame_len)
 {
     uint8_t tmp_checksum;
@@ -90,12 +105,12 @@ int32_t get_alt(uint8_t *frame, uint16_t frame_len)
     return alt;
 }
 
-void send_alt(uint64_t addr, int32_t alt)
+void send_alt(uint64_t dest, int32_t alt)
 {
     // 1 type byte, 1 sign byte, 10 32-bit signed int bytes, 1 nul terminator.
     uint8_t msg[13];
     // left justify, make sure it takes up 11 chars
     sprintf((char*)msg, "a%-11ld", (signed long)alt);
     // transmit, don't care about nul terminator
-    tx(msg, 12, addr, 0x00);
+    tx(msg, 12, dest, 0x00);
 }

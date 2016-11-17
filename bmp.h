@@ -5,9 +5,10 @@
 
 struct msg_types_t
 {
+    uint8_t SIM_ALT_REQUEST;
     uint8_t SIM_ALT;
+    uint8_t PAYLOAD_ALT_REQUEST;
     uint8_t PAYLOAD_ALT;
-    uint8_t ALT_REQUEST;
     uint8_t WAT_REQUEST;
     uint8_t WAT_REPLY;
     uint8_t PEER_ADDR;
@@ -24,10 +25,12 @@ void send_wat_reply(uint64_t dest);
 
 void send_peer_addr(uint64_t addr, uint64_t dest);
 
-void send_alt_request(uint64_t dest, uint16_t time);
+void send_sim_alt_request(uint64_t dest, uint16_t time);
+
+void send_payload_alt_request(uint64_t dest, uint32_t alt);
 
 int32_t get_alt(uint8_t *frame, uint16_t frame_len);
 
-void send_alt(uint64_t addr, int32_t alt);
+void send_alt(uint64_t dest, int32_t alt);
 
 #endif

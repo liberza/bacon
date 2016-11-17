@@ -34,28 +34,32 @@ int main(void)
     uint16_t ballast_time = 0;
 
     int32_t alt = INT32_MIN;
+    int32_t peer_alt = INT32_MIN;
     int32_t initial_alt = INT32_MIN;
 
     sei();
 
     tx((uint8_t*)&MSG_TYPES.WAT_REQUEST, 1, BROADCAST, 0x00);
     timer = 0;
+    sim_timer = 0;
+    peer_timer = 0;
     for(ever)
     {
         while (initial_alt == INT32_MIN)
         {
             status(STATUS0);
-            if (((sim == 0) || peer == 0) && timer >= 3000)
+            if (((sim == 0) || peer == 0) && peer_timer >= 5000)
             {
                 tx((uint8_t*)&MSG_TYPES.WAT_REQUEST, 1, BROADCAST, 0x00);
-                timer = 0;
+                peer_timer = 0;
             }
-            else if ((sim != 0) && (peer != 0) && timer >= 10000)
+            else if ((sim != 0) && (peer != 0) && sim_timer >= 10000)
             {
-                send_alt_request(sim, 0);
-                timer = 0;
+                send_sim_alt_request(sim, 0);
+                sim_timer = 0;
             }
             // Try rx, timeout if over 3s
+            timer = 0;
             if (!rx(frame, 3000))
             {
                 status(0);
@@ -80,33 +84,59 @@ int main(void)
                 }
                 else if (msg_type == MSG_TYPES.SIM_ALT)
                 {
-                    status(STATUS3);
                     initial_alt = get_alt(frame, frame_len);
                 }
             }
         }
-        status(STATUS2);
         alt = initial_alt;
-        send_alt_request(sim, 0);
+        send_sim_alt_request(sim, 0);
+        send_payload_alt_request(peer, initial_alt);
         timer = 0;
+        peer_timer = 0;
+        sim_timer = 0;
         for(ever)
         {
-            if (timer >= 10000)
+            if (peer_timer >= 20000)
             {
-                send_alt_request(sim, ballast_time);
-                timer = 0;
-                ballast_time = 0;
+                send_payload_alt_request(peer, alt);
+                peer_timer = 0;
             }
-            if(!rx(frame, 3000))
+            if (sim_timer >= 5000)
+            {
+                send_sim_alt_request(sim, ballast_time);
+                sim_timer = 0;
+            }
+            timer = 0;
+            if(!rx(frame, 2000))
             {
                 frame_len = get_frame_len(frame);
                 msg_type = get_msg_type(frame, frame_len);
                 if (msg_type == MSG_TYPES.SIM_ALT)
                 {
+                    status(STATUS1);
                     alt = get_alt(frame, frame_len);
                 }
-                if (alt > 1750)
+                else if (msg_type == MSG_TYPES.PAYLOAD_ALT)
+                {
+                    status(STATUS2);
+                    peer_alt = get_alt(frame, frame_len);
+                    if (alt > 1750)
+                    {
+                        // uint16_t on_time = control(alt, peer_alt);
+                        solenoid_timer = 0;
+                        // activate_solenoid(on_time);
+                        
+                    }
+                }
+                else if (msg_type == MSG_TYPES.PAYLOAD_ALT_REQUEST)
+                {
                     status(STATUS3);
+                    send_alt(peer, alt);
+                }
+                else if (msg_type == MSG_TYPES.WAT_REQUEST)
+                {
+                    send_wat_reply(get_source_addr(frame));
+                }
             }
         }
     }

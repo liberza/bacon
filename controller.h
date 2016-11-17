@@ -2,6 +2,8 @@
 #define TIMER_H
 
 volatile uint16_t timer;
+volatile uint16_t peer_timer;
+volatile uint16_t sim_timer;
 volatile uint16_t solenoid_timer;
 volatile uint16_t solenoid_on_time;
 volatile uint8_t solenoid_on;
