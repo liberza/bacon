@@ -80,16 +80,4 @@ unsigned int cmd_prom(char coef_num)
 	return rC;
 }
 
-unsigned int crc4(unsigned int n_prom[])
-{
-	int cnt;
-	unsigned int n_rem;
-	unsigned int crc_read;
-	unsigned char n_bit;
 
-	n_rem = 0x00;
-	crc_read = n_prom[7];
-	n_prom[7] = (0xFF00 & (n_prom[7]));
-
-	return (n_rem ^ 0x00);
-}
