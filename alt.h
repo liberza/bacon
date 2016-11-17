@@ -19,8 +19,8 @@
 
 
 // CHANGE FOLLOWING DEFINITIONS TO ACTUAL CS PIN
-#define csb_hi()		(PORTB &= ~(1 << PB5))// setting csb low
-#define csb_lo()		(PORTB |= (1 << PB5))// setting csb high
+#define csb_hi()		(PORTB &= ~(1 << PB2))// setting SS low
+#define csb_lo()		(PORTB |= (1 << PB2))// setting SS high
 
 #include <avr/io.h>
 #include <avr/interrupt.h>
@@ -32,7 +32,7 @@
 #include <stdlib.h>
 #include <math.h>
 
-void spi_command_send(
+void spi_cmd_send(
 	char cmd
 	);
 
