@@ -32,13 +32,14 @@ def sim_alt_str(alt):
 def parse(msg):
     ''' msg should be a RX frame. msg[14] is the first data byte. '''
     if msg[2] != 0x90:
-        raise Exception("parse_request(): Non-RX frame passed!")
+        return (None,)
 
     msg_type = chr(msg[14])
     if msg_type == MSG_TYPES['ALT_REQUEST']:
         # payload is requesting altitude. msg[14:-1] is the time it
         # has opened its valve since the last request, in ms.
-        ret = (MSG_TYPES['ALT_REQUEST'], msg[3:11], msg[14:-1])
+        # FIXME: make msg[3:11] automatically an int.
+        ret = (MSG_TYPES['ALT_REQUEST'], msg[3:11], int(msg[15:-1].decode()))
 
     elif msg_type == MSG_TYPES['WAT_REQUEST']:
         # ret[1] is the string to send back as a WAT_REPLY. ret[2] is the addr to respond to.
@@ -101,7 +102,5 @@ def init_peering(p1, p2, xb):
                 elif ((payload_addr == p2.addr) and (p2_peered == False)):
                     print("P2 ({:016x}) peered successfully with P1 ({:016x})".format(payload_addr, peer_addr))
                     p2_peered = True
-            else:
-                print(msg)
 
         msg = None

@@ -67,7 +67,7 @@ const struct frame_types_t FRAME_OHEAD;
 void xbee_init();
 
 //! Receive a Digimesh frame, if available in the serial buffer.
-uint8_t rx(uint8_t *frame);
+uint8_t rx(uint8_t *frame, uint16_t timeout);
 
 //! Transmit a Digimesh frame.
 uint8_t tx(uint8_t *data, uint16_t data_len, uint64_t dest, uint8_t opts);

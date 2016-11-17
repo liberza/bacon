@@ -6,7 +6,7 @@
 #include "xbee.h"
 #include "serial.h"
 #include "status.h"
-#include "solenoid.h"
+#include "controller.h"
 #include "bmp.h"
 
 #include <stdio.h>
@@ -18,14 +18,12 @@
 #define BAUD_PRESCALE (((F_CPU / (USART_BAUDRATE * 16UL))) - 1)
 #define ever ;;
 
-volatile uint8_t rx_flag;
-volatile uint32_t timer;
-
 int main(void)
 {
     status_pin_init();
     serial_init(BAUD_PRESCALE, DATA_BITS_8, STOP_BITS_1, PARITY_DISABLED);
     xbee_init();
+    tim_init();
     solenoid_init();
     uint64_t peer = (uint64_t)0;
     uint64_t sim = (uint64_t)0;
@@ -33,12 +31,10 @@ int main(void)
     uint16_t frame_len;
     uint8_t frame[MAX_BUF_SIZE];
     uint8_t msg_type;
+    uint16_t ballast_time = 0;
 
-    // timer init
-    TCCR1B |= (1<<WGM12);
-    TCCR1B |= (1<<CS11)|(1<<CS10);
-    OCR1A = 125;
-    TIMSK1 |= (1<<OCIE1A);
+    int32_t alt = INT32_MIN;
+    int32_t initial_alt = INT32_MIN;
 
     sei();
 
@@ -46,44 +42,72 @@ int main(void)
     timer = 0;
     for(ever)
     {
-        status(STATUS0);
-        if (((sim == 0) || peer == 0) && timer >= 3000)
+        while (initial_alt == INT32_MIN)
         {
-            tx((uint8_t*)&MSG_TYPES.WAT_REQUEST, 1, BROADCAST, 0x00);
-            timer = 0;
-        }
-        rx(frame);
-        status(0);
-        frame_len = get_frame_len(frame);
-        msg_type = get_msg_type(frame, frame_len);
-        if (msg_type == MSG_TYPES.WAT_REQUEST)
-        {
-            status(STATUS1);
-            send_wat_reply(get_source_addr(frame));
-            if (peer != 0)
+            status(STATUS0);
+            if (((sim == 0) || peer == 0) && timer >= 3000)
             {
-                send_peer_addr(peer, sim);
+                tx((uint8_t*)&MSG_TYPES.WAT_REQUEST, 1, BROADCAST, 0x00);
+                timer = 0;
+            }
+            else if ((sim != 0) && (peer != 0) && timer >= 10000)
+            {
+                send_alt_request(sim, 0);
+                timer = 0;
+            }
+            // Try rx, timeout if over 3s
+            if (!rx(frame, 3000))
+            {
+                status(0);
+                frame_len = get_frame_len(frame);
+                msg_type = get_msg_type(frame, frame_len);
+                if (msg_type == MSG_TYPES.WAT_REQUEST)
+                {
+                    send_wat_reply(get_source_addr(frame));
+                    if (peer != 0)
+                    {   // Send peer's address to show we peered successfully
+                        send_peer_addr(peer, sim);
+                    }
+                }
+                else if (msg_type == MSG_TYPES.WAT_REPLY)
+                {
+                    wat_type = get_wat_type(frame, frame_len);
+                    if (wat_type == 'P')
+                        peer = get_source_addr(frame);
+                    else if (wat_type == 'S')
+                        sim = get_source_addr(frame);
+                    // ignore else
+                }
+                else if (msg_type == MSG_TYPES.SIM_ALT)
+                {
+                    status(STATUS3);
+                    initial_alt = get_alt(frame, frame_len);
+                }
             }
         }
-        else if (msg_type == MSG_TYPES.WAT_REPLY)
+        status(STATUS2);
+        alt = initial_alt;
+        send_alt_request(sim, 0);
+        timer = 0;
+        for(ever)
         {
-            status(STATUS2);
-            wat_type = get_wat_type(frame, frame_len);
-            if (wat_type == 'P')
-                peer = get_source_addr(frame);
-            else if (wat_type == 'S')
-                sim = get_source_addr(frame);
-            else
+            if (timer >= 10000)
             {
-                status_or(STATUS3); // invalid WAT reply.
+                send_alt_request(sim, ballast_time);
+                timer = 0;
+                ballast_time = 0;
+            }
+            if(!rx(frame, 3000))
+            {
+                frame_len = get_frame_len(frame);
+                msg_type = get_msg_type(frame, frame_len);
+                if (msg_type == MSG_TYPES.SIM_ALT)
+                {
+                    alt = get_alt(frame, frame_len);
+                }
+                if (alt > 1750)
+                    status(STATUS3);
             }
         }
-        else
-            status(STATUS4);
     }
-}
-
-ISR(TIMER1_COMPA_vect)
-{
-    timer++;
 }

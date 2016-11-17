@@ -2,6 +2,7 @@
 #include "rbuf.h"
 #include "status.h"
 #include "serial.h"
+#include "controller.h"
 #include <avr/io.h>
 #include <util/delay.h>
 #include <util/atomic.h>
@@ -123,9 +124,9 @@ uint8_t tx(uint8_t *data, uint16_t data_len, uint64_t dest, uint8_t opts)
 
 //! rx(frame) assumes frame has MAX_BUF_SIZE bytes allocated already.
 //! DO NOT use this if frame is unallocated.
-uint8_t rx(uint8_t *frame)
+uint8_t rx(uint8_t *frame, uint16_t timeout)
 {
-    uint8_t ret;
+    uint8_t ret = 1;
     // Add timeout here.
     /* while(rx_flag == 0); */
     /* rx_flag = 0; */
@@ -135,7 +136,7 @@ uint8_t rx(uint8_t *frame)
             frame[i] = 0x00;
         ret = find_frame(&rbuf, frame);
     }
-    while (ret != 0);
+    while ((ret != 0) && (timeout > timer));
     return ret;
 }
 

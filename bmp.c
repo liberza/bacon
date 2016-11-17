@@ -59,7 +59,7 @@ void send_peer_addr(uint64_t addr, uint64_t dest)
 {
     uint8_t msg[9];
     msg[0] = 'p';
-    for (uint8_t i = 0; i < 7; i++)
+    for (uint8_t i = 0; i < 8; i++)
     {
         msg[i+1] = (uint8_t)((addr >> (7-i)*8) & 0xFF);
     }
@@ -71,14 +71,14 @@ void send_alt_request(uint64_t dest, uint16_t time)
     // time is the time the valve was open for between now and the last request.
     uint8_t msg[7]; // one 'R', time up to 65535ms, and nul terminator.
     // left justify, make sure it takes up 5 chars
-    sprintf((char*)msg, "R%-5u", (unsigned int)time);
+    sprintf((char*)msg, "S%-5u", (unsigned int)time);
     // transmit, don't care about nul terminator
     tx(msg, 6, dest, 0x00);
 }
 int32_t get_alt(uint8_t *frame, uint16_t frame_len)
 {
     uint8_t tmp_checksum;
-    int32_t alt = 0x80000000;
+    int32_t alt = INT32_MIN;
     if ((frame_len > FRAME_OHEAD.RX + 2) && (frame[15] == MSG_TYPES.SIM_ALT))
     {
         tmp_checksum = frame[frame_len-1];

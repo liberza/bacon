@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 import json
 import numpy as np
+import random
 
 
 class Payload():
@@ -13,13 +14,16 @@ class Payload():
     name = "Payload"
     time_index = 0.0 # s
     timestep = 1.0 # gets larger as ballast is dropped.
+    last_request_time = 0
+    last_alt = 0
     
-    def __init__(self, filename, mass):
+    def __init__(self, filename, mass, name):
         self.parse_profile(filename)
         self.initial_mass = mass # kg
         self.mass = self.initial_mass # kg
         # ballast is included in total mass.
         self.initial_ballast = 500 # ml
+        self.name = name
 
     def parse_profile(self, filename):
         '''
@@ -41,29 +45,33 @@ class Payload():
         of the flight.
         '''
 
-        index = self.time_elapsed
-
         # alt = None if seconds is outside of the flight time.
-        if (index > self.alts.size):
+        if (self.time_index > self.alts.size):
             alt = None
-        elif (index < 0):
+            print("time index > alt size")
+        elif (self.time_index < 0):
             alt = None
+            print("time index < 0")
 
         # otherwise, linearly interpolate between the two closest values.
         else:
             alt = np.empty
-            alt = np.interp(index, self.times, self.alts)
+            alt = np.interp(self.time_index, self.times, self.alts)
 
-        return int(alt)
+        self.last_alt = alt
+
+        return alt
 
     # Did curve-fitting on HabHub data to come up with timestep adjustment.
-    def adjust_time(time_elapsed_delta):
+    def adjust_time(self, time_elapsed):
+        time_delta = time_elapsed - self.last_request_time
+        self.last_request_time = time_elapsed
         x = self.ref_mass / self.mass
         self.timestep = -0.0815243*x*x*x + 0.1355*x*x - 0.391461*x + 1.33748611
-        self.time_index += time_elapsed_delta*self.timestep
+        self.time_index += time_delta*self.timestep
         
 
-    def drop_mass(ballast_time_ms):
+    def drop_mass(self, ballast_time_ms):
         # experimental results show 4.925ml/s drain rate. with current setup.
         # we give it random +-10% error, because the payload is getting
         # blasted by high winds and the ballast is sloshing around.
