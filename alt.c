@@ -65,6 +65,18 @@ unsigned int cmd_prom(char coef_num)
 
 	rC = 0;
 
+	csb_lo();
+	spi_cmd_send(CMD_PROM_RD + coef_num*2);
+	spi_cmd_send(0x00);
+	ret = SPDR;
+	rC = 256 * ret;
+
+	spi_cmd_send(0x00);
+	ret = SPDR;
+
+	rC = rC + ret;
+	csb_hi();
+
 	return rC;
 }
 

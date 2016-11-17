@@ -15,6 +15,7 @@
 #define CMD_ADC_512		0x02
 #define CMD_ADC_1024	0x04
 #define CMD_ADC_2048	0x06
+#define CMD_ADC_4096	0x08
 #define CMD_PROM_RD		0xA0
 
 
@@ -37,7 +38,7 @@ void spi_cmd_send(
 	);
 
 
-void command_reset(
+void cmd_reset(
 	void
 	);
 
