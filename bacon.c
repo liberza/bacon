@@ -135,7 +135,12 @@ int main(void)
                 }
                 else if (msg_type == MSG_TYPES.WAT_REQUEST)
                 {
+                    status(STATUS4);
                     send_wat_reply(get_source_addr(frame));
+                }
+                else
+                {
+                    status(STATUS5);
                 }
             }
         }
