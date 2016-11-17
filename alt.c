@@ -122,3 +122,25 @@ double read_sensor(void)
 
 	return P;
 }
+
+double altitude(void)
+{
+	double altitude;
+	double pressure;
+	pressure = read_sensor();
+	
+	/* 
+	 * Calculate altitude using simplified barometric equation:
+	 *
+	 * 					  /         1/5.255\
+	 * altitude = 44330 * \1 - (p/p0)      /
+	 *
+	 */
+	pressure /= P0;
+	pressure = pow(pressure, (1/5.255));
+	pressure = 1 - pressure;
+	altitude = 44330 * pressure;
+
+	return altitude;
+	
+}

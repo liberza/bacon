@@ -4,7 +4,8 @@
 #define TRUE 1
 #define FALSE 0
 
-#define F_CPU 8000000UL
+#define F_CPU 	8000000UL
+#define P0		1013.25
 
 #define CMD_RESET		0x1E
 #define CMD_ADC_READ 	0x00
@@ -51,6 +52,10 @@ unsigned int cmd_prom(
 	);
 
 double read_sensor(
+	void
+	);
+
+double altitude(
 	void
 	);
 
