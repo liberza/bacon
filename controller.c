@@ -51,7 +51,8 @@ uint16_t control(int32_t alt, int32_t peer_alt)
     uint16_t release_time = 0;
     int32_t distance;
 
-    distance = alt - peer_alt;
+    /* distance = alt - peer_alt; */
+    distance = peer_alt - alt;
 
     // Greater than 100 decimeters
     if (distance > 100)
@@ -60,11 +61,11 @@ uint16_t control(int32_t alt, int32_t peer_alt)
         /* release_time /= 1.5;    // gain 1.5 decimeters per second per */
         /* release_time *= 100;    // 100 grams of weight lost */
         /* release_time /= POUR_RATE; */
-        release_time = distance * 10;
+        release_time = distance * 25;
     }
 
-    if (release_time > 12000)
-        release_time = 12000;
+    if (release_time > 14000)
+        release_time = 14000;
 
     return release_time;
 }

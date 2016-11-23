@@ -50,7 +50,7 @@ int main(void)
         while (initial_alt == INT32_MIN)
         {
             status(STATUS0);
-            if (((sim == 0) || peer == 0) && peer_timer >= 5500)
+            if (((sim == 0) || peer == 0) && peer_timer >= 5300)
             {
                 tx((uint8_t*)&MSG_TYPES.WAT_REQUEST, 1, BROADCAST, 0x00);
                 peer_timer = 0;

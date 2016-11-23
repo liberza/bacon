@@ -49,9 +49,11 @@ class Payload():
         if (self.time_index > self.alts.size):
             alt = None
             print("time index > alt size")
+            print(self.time_index)
         elif (self.time_index < 0):
             alt = None
             print("time index < 0")
+            print(self.time_index)
 
         # otherwise, linearly interpolate between the two closest values.
         else:
@@ -65,7 +67,7 @@ class Payload():
         time_delta = time_elapsed - self.last_request_time
         self.last_request_time = time_elapsed
         x = self.ref_mass / self.mass
-        self.timestep = -0.0815243*x*x*x + 0.1355*x*x - 0.391461*x + 1.33748611
+        self.timestep = 1.0/(-0.0815243*x*x*x + 0.1355*x*x - 0.391461*x + 1.33748611)
         self.time_index += time_delta*self.timestep
         
 
