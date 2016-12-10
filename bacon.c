@@ -3,11 +3,11 @@
 #include <util/delay.h>
 #include <util/atomic.h>
 
-#include "xbee.h"
-#include "serial.h"
-#include "status.h"
-#include "controller.h"
-#include "bmp.h"
+#include "lib/xbee.h"
+#include "lib/serial.h"
+#include "lib/status.h"
+#include "lib/controller.h"
+#include "lib/bmp.h"
 
 #include <stdio.h>
 #include <string.h>

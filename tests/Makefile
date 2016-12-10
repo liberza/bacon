@@ -42,12 +42,12 @@ AVRDUDE = avrdude
 
 ## The name of your project (without the .c)
 ## Or name it automatically after the enclosing directory
-TARGET = bacon
+TEST_SOLENOID = test_solenoid
 
 # Object files: will find all .c/.h files in current directory
 #  and in LIBDIR.  If you have any other (sub-)directories with code,
 #  you can add them in to SOURCES below in the wildcard statement.
-SOURCES=$(wildcard *.c lib/*.c)
+SOURCES=$(wildcard *.c ../lib/*.c)
 OBJECTS=$(SOURCES:.c=.o)
 HEADERS=$(SOURCES:.c=.h)
 
@@ -58,7 +58,7 @@ CFLAGS = -O3 -g -std=gnu99 -Wall
 CFLAGS += -funsigned-char -funsigned-bitfields -fpack-struct -fshort-enums 
 ## Splits up object files per function
 CFLAGS += -ffunction-sections -fdata-sections 
-LDFLAGS = -Wl,-Map,$(TARGET).map 
+LDFLAGS = -Wl,-Map,$(TEST_SOLENOID).map
 ## Optional, but often ends up with smaller code
 LDFLAGS += -Wl,--gc-sections 
 ## Relax shrinks code even more, but makes disassembly messy
@@ -72,7 +72,7 @@ TARGET_ARCH = -mmcu=$(MCU)
 %.o: %.c $(HEADERS) Makefile
 	 $(CC) $(CFLAGS) $(CPPFLAGS) $(TARGET_ARCH) -c -o $@ $<;
 
-$(TARGET).elf: $(OBJECTS)
+$(TEST_SOLENOID).elf: $(OBJECTS)
 	$(CC) $(LDFLAGS) $(TARGET_ARCH) $^ $(LDLIBS) -o $@
 
 %.hex: %.elf
@@ -85,9 +85,9 @@ $(TARGET).elf: $(OBJECTS)
 	$(OBJDUMP) -S $< > $@
 
 ## These targets don't have files named after them
-.PHONY: all disassemble disasm eeprom size clean squeaky_clean flash fuses
+.PHONY: all disassemble disasm eeprom size clean flash fuses
 
-all: $(TARGET).hex 
+all: $(TEST_SOLENOID).hex
 
 debug:
 	@echo
@@ -99,22 +99,19 @@ debug:
 # This creates approximate assembly-language equivalent of your code.
 # Useful for debugging time-sensitive bits, 
 # or making sure the compiler does what you want.
-disassemble: $(TARGET).lst
+disassemble: $(TEST_SOLENOID).lst
 
 disasm: disassemble
 
 # Optionally show how big the resulting program is 
-size:  $(TARGET).elf
-	$(AVRSIZE) -C --mcu=$(MCU) $(TARGET).elf
+size:  $(TEST_SOLENOID).elf
+	$(AVRSIZE) -C --mcu=$(MCU) $(TEST_SOLENOID).elf
 
 clean:
-	rm -f $(TARGET).elf $(TARGET).hex $(TARGET).obj \
-	$(TARGET).o $(TARGET).d $(TARGET).eep $(TARGET).lst \
-	$(TARGET).lss $(TARGET).sym $(TARGET).map \
-	$(TARGET).eeprom
-
-squeaky_clean:
-	rm -f *.elf *.hex *.obj *.o *.d *.eep *.lst *.lss *.sym *.map *~ *.eeprom
+	rm -f *.elf *.hex *.obj \
+	*.o *.d *.eep *.lst \
+	*.lss *.sym *.map \
+	*.eeprom
 
 ##########------------------------------------------------------##########
 ##########              Programmer-specific details             ##########
@@ -123,12 +120,12 @@ squeaky_clean:
 
 fuses:
 	# Comment out ./rst.py if not using the buspirate to program.
-	./rst.py
+	./../rst.py
 	$(AVRDUDE) -c $(PROGRAMMER_TYPE) -p $(MCU) $(PROGRAMMER_ARGS) -U lfuse:w:0xe2:m -U hfuse:w:0xd9:m -U efuse:w:0xff:m
 
-flash: $(TARGET).hex 
+flash: $(TEST_SOLENOID).hex 
 	# Comment out ./rst.py if not using the buspirate to program.
-	./rst.py
+	./../rst.py
 	$(AVRDUDE) -c $(PROGRAMMER_TYPE) -p $(MCU) $(PROGRAMMER_ARGS) -U flash:w:$<
 	#./pwr.py
 
