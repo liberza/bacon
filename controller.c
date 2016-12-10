@@ -18,6 +18,7 @@ volatile uint8_t solenoid_on = 0;
 void tim_init()
 {
     // 1ms resolution
+    // See datasheet if you don't know why this is 1ms.
     TCCR1B |= (1<<WGM12);
     TCCR1B |= (1<<CS11)|(1<<CS10);
     OCR1A = 125;
@@ -25,6 +26,7 @@ void tim_init()
     TIMSK1 |= (1<<OCIE1A);
 }
 
+// Set solenoid pin to 0 and make it an output.
 void solenoid_init()
 {
     PORTB &= ~(1 << PB1);

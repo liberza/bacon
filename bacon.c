@@ -21,11 +21,6 @@
 
 int main(void)
 {
-    status_pin_init();
-    serial_init(BAUD_PRESCALE, DATA_BITS_8, STOP_BITS_1, PARITY_DISABLED);
-    xbee_init();
-    tim_init();
-    solenoid_init();
     uint64_t peer = (uint64_t)0;
     uint64_t sim = (uint64_t)0;
     uint8_t wat_type;
@@ -39,7 +34,29 @@ int main(void)
     int32_t peer_alt = INT32_MIN;
     int32_t initial_alt = INT32_MIN;
 
+    status_pin_init();
+    status(STATUS0 | STATUS1 | STATUS2);
+    tim_init();
+    solenoid_init();
+
     sei();
+
+    for(ever)
+    {
+        status(STATUS1 | STATUS2);
+        _delay_ms(500);
+        status(STATUS0 | STATUS2);
+        _delay_ms(500);
+        status(STATUS0 | STATUS1);
+        _delay_ms(500);
+        status(0);
+        activate_solenoid(1000);
+        _delay_ms(500);
+    }
+
+    serial_init(BAUD_PRESCALE, DATA_BITS_8, STOP_BITS_1, PARITY_DISABLED);
+    xbee_init();
+
 
     tx((uint8_t*)&MSG_TYPES.WAT_REQUEST, 1, BROADCAST, 0x00);
     timer = 0;

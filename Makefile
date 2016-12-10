@@ -15,8 +15,10 @@ BAUD  = 9600UL
 ##########------------------------------------------------------##########
 
 PROGRAMMER_TYPE = buspirate
+# PROGRAMMER_TYPE = avrispmkII
 # extra arguments to avrdude: baud rate, chip type, -F flag, etc.
 PROGRAMMER_ARGS = -P /dev/buspirate
+# PROGRAMMER_ARGS = -P /dev/mkii
 
 ##########------------------------------------------------------##########
 ##########                  Program Locations                   ##########
@@ -51,7 +53,7 @@ HEADERS=$(SOURCES:.c=.h)
 
 ## Compilation options, type man avr-gcc if you're curious.
 CPPFLAGS = -DF_CPU=$(F_CPU) -DBAUD=$(BAUD) -I.
-CFLAGS = -Os -g -std=gnu99 -Wall
+CFLAGS = -O3 -g -std=gnu99 -Wall
 ## Use short (8-bit) data types 
 CFLAGS += -funsigned-char -funsigned-bitfields -fpack-struct -fshort-enums 
 ## Splits up object files per function
@@ -108,7 +110,7 @@ size:  $(TARGET).elf
 clean:
 	rm -f $(TARGET).elf $(TARGET).hex $(TARGET).obj \
 	$(TARGET).o $(TARGET).d $(TARGET).eep $(TARGET).lst \
-	$(TARGET).lss $(TARGET).sym $(TARGET).map $(TARGET)~ \
+	$(TARGET).lss $(TARGET).sym $(TARGET).map \
 	$(TARGET).eeprom
 
 squeaky_clean:
@@ -120,10 +122,12 @@ squeaky_clean:
 ##########------------------------------------------------------##########
 
 fuses:
+	# Comment out ./rst.py if not using the buspirate to program.
 	./rst.py
 	$(AVRDUDE) -c $(PROGRAMMER_TYPE) -p $(MCU) $(PROGRAMMER_ARGS) -U lfuse:w:0xe2:m -U hfuse:w:0xd9:m -U efuse:w:0xff:m
 
 flash: $(TARGET).hex 
+	# Comment out ./rst.py if not using the buspirate to program.
 	./rst.py
 	$(AVRDUDE) -c $(PROGRAMMER_TYPE) -p $(MCU) $(PROGRAMMER_ARGS) -U flash:w:$<
 	#./pwr.py

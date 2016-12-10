@@ -29,12 +29,14 @@ const struct frame_types_t FRAME_TYPES =
     .REMOTE_RESP    = (uint8_t)0x97
 };  
 
+// Number of overhead bytes for certain frame types.
 const struct frame_types_t FRAME_OHEAD =
 {
     .TX             = (uint8_t)18,
     .RX             = (uint8_t)16,
 };
 
+// Special bytes that need to be escaped in data.
 const static struct special_bytes_t SPECIAL_BYTES =
 {
     .FRAME_DELIM = (uint8_t)0x7E,
@@ -43,6 +45,7 @@ const static struct special_bytes_t SPECIAL_BYTES =
     .XOFF        = (uint8_t)0x13
 };
 
+// Initialize Xbee buffers and enable rx interrupt.
 void xbee_init()
 {
     rbuf.start = 0;
@@ -54,6 +57,7 @@ void xbee_init()
     RX_INT_ENABLE();
 }
 
+// Transmit data of length data_len to destination address dest.
 uint8_t tx(uint8_t *data, uint16_t data_len, uint64_t dest, uint8_t opts)
 {
     /* uint8_t frame[MAX_BUF_SIZE]; */
@@ -93,7 +97,7 @@ uint8_t tx(uint8_t *data, uint16_t data_len, uint64_t dest, uint8_t opts)
     }
 
     // append data and sum it
-    for (int i=17; i < (frame_len - 1); i++)
+ (int i=17; i < (frame_len - 1); i++)
     {
         frame[i] = data[i - 17];
         sum += data[i - 17];
@@ -132,8 +136,10 @@ uint8_t rx(uint8_t *frame, uint16_t timeout)
     /* rx_flag = 0; */
     do
     {
+        // zero-out the frame buffer before each check.
         for (int i=0; i<MAX_BUF_SIZE; i++)
             frame[i] = 0x00;
+        // find a valid frame in rbuf.
         ret = find_frame(&rbuf, frame);
     }
     while ((ret != 0) && (timeout > timer));

@@ -3,7 +3,7 @@
 
 void status_pin_init()
 {
-    uint8_t portc_out = (1<<PC1)|(1<<PC2)|(1<<PC3)|(1<<PC4)|(1<<PC5);
+    uint8_t portc_out = (1<<PC0)|(1<<PC1)|(1<<PC2)|(1<<PC3)|(1<<PC4)|(1<<PC5);
     uint8_t portd_out = (1<<PD3)|(1<<PD4)|(1<<PD5);
     PORTC &= ~portc_out;
     DDRC |= portc_out;
