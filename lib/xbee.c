@@ -60,6 +60,7 @@ void xbee_init()
 // Transmit data of length data_len to destination address dest.
 uint8_t tx(uint8_t *data, uint16_t data_len, uint64_t dest, uint8_t opts)
 {
+    status_clear(STATUS1);
     /* uint8_t frame[MAX_BUF_SIZE]; */
     uint8_t frame[MAX_BUF_SIZE + 18];
 
@@ -123,6 +124,7 @@ uint8_t tx(uint8_t *data, uint16_t data_len, uint64_t dest, uint8_t opts)
             put_byte(frame[i]);
         }
             
+    status_set(STATUS1);
     return 0;
 }
 
@@ -134,6 +136,7 @@ uint8_t rx(uint8_t *frame, uint16_t timeout)
     // Add timeout here.
     /* while(rx_flag == 0); */
     /* rx_flag = 0; */
+    status_clear(STATUS2);
     do
     {
         // zero-out the frame buffer before each check.
@@ -142,7 +145,8 @@ uint8_t rx(uint8_t *frame, uint16_t timeout)
         // find a valid frame in rbuf.
         ret = find_frame(&rbuf, frame);
     }
-    while ((ret != 0) && (timeout > timer));
+    while ((ret != 0) && (timeout > timer_1));
+    status_set(STATUS2);
     return ret;
 }
 

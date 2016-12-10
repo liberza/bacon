@@ -4,12 +4,13 @@
 #define POUR_RATE	4.92893	// pour rate in mL/s
 #define PROP_SCALER	600000	// divider in ms
 
-volatile uint16_t timer;
+volatile uint16_t timer_1;
+volatile uint16_t timer_2;
 volatile uint16_t peer_timer;
 volatile uint16_t sim_timer;
-volatile uint16_t solenoid_timer;
 volatile uint16_t solenoid_on_time;
 volatile uint8_t solenoid_on;
+volatile uint8_t currently_peering;
 
 void tim_init();
 

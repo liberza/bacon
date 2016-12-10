@@ -29,6 +29,12 @@
 //! Initialize GPIO for outputting error values.
 void status_pin_init();
 
+void status_toggle(uint8_t pins);
+
+void status_set(uint8_t pins);
+
+void status_clear(uint8_t pins);
+
 void status_or(uint8_t pins);
 
 void status(uint8_t pins);

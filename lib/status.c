@@ -11,7 +11,30 @@ void status_pin_init()
     DDRD |= portd_out;
 }
 
-void status_or(uint8_t pins)
+// Toggle these pins. Don't touch other pins.
+void status_toggle(uint8_t pins)
+{
+    if (pins & STATUS0)
+        PORTC ^= 1 << PC0;
+    if (pins & STATUS1)
+        PORTC ^= 1 << PC1;
+    if (pins & STATUS2)
+        PORTC ^= 1 << PC2;
+    if (pins & STATUS3)
+        PORTC ^= 1 << PC3;
+    if (pins & STATUS4)
+        PORTC ^= 1 << PC4;
+    if (pins & STATUS5)
+        PORTC ^= 1 << PC5;
+    if (pins & STATUS6)
+        PORTD ^= 1 << PD4;
+    if (pins & STATUS7)
+        PORTD ^= 1 << PD3;
+    
+}
+
+// Set these pins to high. Don't touch other pins.
+void status_set(uint8_t pins)
 {
     if (pins & STATUS0)
         PORTC |= 1 << PC0;
@@ -31,6 +54,29 @@ void status_or(uint8_t pins)
         PORTD |= 1 << PD3;
 }
 
+// Set these pins to low. Don't touch other pins.
+void status_clear(uint8_t pins)
+{
+    if (pins & STATUS0)
+        PORTC &= ~(1 << PC0);
+    if (pins & STATUS1)
+        PORTC &= ~(1 << PC1);
+    if (pins & STATUS2)
+        PORTC &= ~(1 << PC2);
+    if (pins & STATUS3)
+        PORTC &= ~(1 << PC3);
+    if (pins & STATUS4)
+        PORTC &= ~(1 << PC4);
+    if (pins & STATUS5)
+        PORTC &= ~(1 << PC5);
+    if (pins & STATUS6)
+        PORTD &= ~(1 << PD4);
+    if (pins & STATUS7)
+        PORTD &= ~(1 << PD3);
+    
+}
+
+// Set only these pins to high. Other pins to low.
 void status(uint8_t pins)
 {
     if (pins & STATUS0)

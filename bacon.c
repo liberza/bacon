@@ -21,8 +21,10 @@
 
 int main(void)
 {
+    // Initialize addresses
     uint64_t peer = (uint64_t)0;
     uint64_t sim = (uint64_t)0;
+
     uint8_t wat_type;
     uint16_t frame_len;
     uint8_t frame[MAX_BUF_SIZE];
@@ -30,43 +32,33 @@ int main(void)
     uint16_t ballast_time = 0;
     uint8_t send_ballast = 0;
 
+    // Initialize altitudes.
     int32_t alt = INT32_MIN;
+    int32_t prev_alt = INT32_MIN;
     int32_t peer_alt = INT32_MIN;
+    int32_t prev_peer_alt = INT32_MIN;
     int32_t initial_alt = INT32_MIN;
 
     status_pin_init();
-    status(STATUS0 | STATUS1 | STATUS2);
     tim_init();
     solenoid_init();
-
-    sei();
-
-    for(ever)
-    {
-        status(STATUS1 | STATUS2);
-        _delay_ms(500);
-        status(STATUS0 | STATUS2);
-        _delay_ms(500);
-        status(STATUS0 | STATUS1);
-        _delay_ms(500);
-        status(0);
-        activate_solenoid(1000);
-        _delay_ms(500);
-    }
-
     serial_init(BAUD_PRESCALE, DATA_BITS_8, STOP_BITS_1, PARITY_DISABLED);
     xbee_init();
+    sei();
 
-
+    // Send a WAT request right when booting up.
     tx((uint8_t*)&MSG_TYPES.WAT_REQUEST, 1, BROADCAST, 0x00);
-    timer = 0;
+
+    // Initialize timers after sending the first tx.
+    timer_1 = 0;
     sim_timer = 0;
     peer_timer = 0;
+    currently_peering = 1;
     for(ever)
     {
+        // Stay in this loop until we get our first altitude.
         while (initial_alt == INT32_MIN)
         {
-            status(STATUS0);
             if (((sim == 0) || peer == 0) && peer_timer >= 5300)
             {
                 tx((uint8_t*)&MSG_TYPES.WAT_REQUEST, 1, BROADCAST, 0x00);
@@ -78,10 +70,10 @@ int main(void)
                 sim_timer = 0;
             }
             // Try rx, timeout if over 3s
-            timer = 0;
+            timer_1 = 0;
             if (!rx(frame, RX_TIMEOUT))
             {
-                status(0);
+                /* status_clear(STATUS2); */
                 frame_len = get_frame_len(frame);
                 msg_type = get_msg_type(frame, frame_len);
                 if (msg_type == MSG_TYPES.WAT_REQUEST)
@@ -105,12 +97,21 @@ int main(void)
                 {
                     initial_alt = get_alt(frame, frame_len);
                 }
+                /* status_set(STATUS2); */
             }
         }
+
+        // This payload's initialization is complete. The other payload and simulator may 
+        // not be done yet though, or may reset during flight, so keep watching for 
+        // WAT requests.
+
+        // Set green LED to solid instead of blinking.
+        currently_peering = 0;
+        status_clear(STATUS0);
         alt = initial_alt;
         send_payload_alt_request(peer, initial_alt);
         send_sim_alt_request(sim, 0);
-        timer = 0;
+        timer_1 = 0;
         peer_timer = 0;
         sim_timer = 0;
         for(ever)
@@ -134,19 +135,20 @@ int main(void)
                 send_payload_alt_request(peer, alt);
                 peer_timer = 0;
             }
-            timer = 0;
+            timer_1 = 0;
             if(!rx(frame, RX_TIMEOUT))
             {
+                status_clear(STATUS2);
                 frame_len = get_frame_len(frame);
                 msg_type = get_msg_type(frame, frame_len);
                 if (msg_type == MSG_TYPES.SIM_ALT)
                 {
-                    status(STATUS1);
+                    //status(STATUS3);
                     alt = get_alt(frame, frame_len);
                 }
                 else if (msg_type == MSG_TYPES.PAYLOAD_ALT)
                 {
-                    status(STATUS2);
+                    //status(STATUS4);
                     peer_alt = get_alt(frame, frame_len);
                     // Check that we rose 175m from our start.
                     if (alt - initial_alt > 1750)
@@ -158,18 +160,19 @@ int main(void)
                 }
                 else if (msg_type == MSG_TYPES.PAYLOAD_ALT_REQUEST)
                 {
-                    status(STATUS3);
+                    //status(STATUS5);
                     send_alt(peer, alt);
                 }
                 else if (msg_type == MSG_TYPES.WAT_REQUEST)
                 {
-                    status(STATUS4);
+                    //status(STATUS6);
                     send_wat_reply(get_source_addr(frame));
                 }
                 else
                 {
-                    status(STATUS5);
+                    //status(STATUS7);
                 }
+                status_set(STATUS2);
             }
         }
     }
