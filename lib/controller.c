@@ -9,9 +9,9 @@
 
 #define PEERING_LED_DELAY 500
 #define THRESHOLD_DIST 100
-#define MAX_SOLENOID_TIME 14000
-#define CONTROLLER_P 25
-#define CONTROLLER_I 5
+#define MAX_SOLENOID_TIME 5000
+#define CONTROLLER_P 20
+#define CONTROLLER_I 0
 #define CONTROLLER_D 5
 
 volatile uint16_t timer_1 = 0;
@@ -64,14 +64,12 @@ uint16_t control(int32_t alt, int32_t peer_alt, int32_t *prev_dist, int32_t *sum
 
     /* distance = alt - peer_alt; */
     dist = peer_alt - alt;
-    *sum_dist += dist;
     delta_dist = dist - *prev_dist;
     *prev_dist = dist;
 
-    // Greater than 100 decimeters
     if (dist > THRESHOLD_DIST)
     {
-        release_time = dist * CONTROLLER_P + delta_dist * CONTROLLER_D + *sum_dist * CONTROLLER_I;
+        release_time = dist * CONTROLLER_P + delta_dist * CONTROLLER_D;
     }
 
     if (release_time > MAX_SOLENOID_TIME)

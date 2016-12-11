@@ -111,6 +111,8 @@ uint8_t tx(uint8_t *data, uint16_t data_len, uint64_t dest, uint8_t opts)
     // escape it if we have to.
     put_byte(frame[0]);
     for (int i=1; i < frame_len; i++)
+    {
+        status_clear(STATUS3);
         if (frame[i] == SPECIAL_BYTES.FRAME_DELIM ||
             frame[i] == SPECIAL_BYTES.ESCAPE      ||
             frame[i] == SPECIAL_BYTES.XON         ||
@@ -123,6 +125,8 @@ uint8_t tx(uint8_t *data, uint16_t data_len, uint64_t dest, uint8_t opts)
         {
             put_byte(frame[i]);
         }
+        status_set(STATUS3);
+    }
             
     status_set(STATUS1);
     return 0;

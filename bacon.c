@@ -18,6 +18,9 @@
 #define BAUD_PRESCALE (((F_CPU / (USART_BAUDRATE * 16UL))) - 1)
 #define ever ;;
 #define RX_TIMEOUT 1453
+#define SIM_INTERVAL 500
+#define PEER_INTERVAL 10000
+#define INITIAL_RISE 1750
 
 int main(void)
 {
@@ -59,12 +62,14 @@ int main(void)
         // Stay in this loop until we get our first altitude.
         while (initial_alt == INT32_MIN)
         {
-            if (((sim == 0) || peer == 0) && peer_timer >= 5300)
+            /* if (((sim == 0) || peer == 0) && peer_timer >= 5300) */
+            if (((sim == 0) || peer == 0) && peer_timer >= SIM_INTERVAL)
             {
                 tx((uint8_t*)&MSG_TYPES.WAT_REQUEST, 1, BROADCAST, 0x00);
                 peer_timer = 0;
             }
-            else if ((sim != 0) && (peer != 0) && sim_timer >= 10000)
+            /* else if ((sim != 0) && (peer != 0) && sim_timer >= 10000) */
+            else if ((sim != 0) && (peer != 0) && sim_timer >= SIM_INTERVAL)
             {
                 send_sim_alt_request(sim, 0);
                 sim_timer = 0;
@@ -116,7 +121,8 @@ int main(void)
         sim_timer = 0;
         for(ever)
         {
-            if (sim_timer >= 1755)
+            /* if (sim_timer >= 1755) */
+            if (sim_timer >= SIM_INTERVAL)
             {
                 if (send_ballast)
                 {
@@ -130,7 +136,7 @@ int main(void)
 
                 sim_timer = 0;
             }
-            if (peer_timer >= 20000)
+            if (peer_timer >= PEER_INTERVAL)
             {
                 send_payload_alt_request(peer, alt);
                 peer_timer = 0;
@@ -150,8 +156,8 @@ int main(void)
                 {
                     //status(STATUS4);
                     peer_alt = get_alt(frame, frame_len);
-                    // Check that we rose 175m from our start.
-                    if (alt - initial_alt > 1750)
+                    // Check that we rose INITIAL_RISE decimeters from our start.
+                    if (alt - initial_alt > INITIAL_RISE)
                     {
                         send_ballast = 1;
                         ballast_time = control(alt, peer_alt, &prev_dist, &sum_dist);

@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 
 # BMP - BACON Message Protocol
 
-TIMEOUT = timedelta(seconds=5)
+TIMEOUT = timedelta(seconds=3)
 
 '''
 Here's how this works:
@@ -68,13 +68,14 @@ def init_peering(p1, p2, xb):
     p2_peered = False
     xb.tx(MSG_TYPES['WAT_REQUEST'], XBee.BROADCAST)
     # Loop until we confirm the addresses of both payloads, and that they peered with eachother.
+    start = datetime.now()
     while ((p1.addr == None) or (p2.addr == None) or (p1_peered == False) or (p2_peered == False)):
         msg = None
-        start = datetime.now()
         while (msg == None):
             now = datetime.now()
             if (now - start >= TIMEOUT):
                 # Resend the WAT request to the network
+                print("Resending wat")
                 xb.tx(MSG_TYPES['WAT_REQUEST'], XBee.BROADCAST)
                 start = datetime.now()
 

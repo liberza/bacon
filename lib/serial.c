@@ -38,6 +38,8 @@ uint8_t serial_init(uint16_t baudrate, uint8_t bits, uint8_t parity, uint8_t sto
 
 void put_byte(uint8_t byte)
 {
+    status_clear(STATUS4);
     while (!(UCSR0A & (1<<UDRE0)));
     UDR0 = byte;
+    status_set(STATUS4);
 }
