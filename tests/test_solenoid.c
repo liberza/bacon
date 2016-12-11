@@ -8,8 +8,8 @@
 #include <stdlib.h>
 #include <errno.h>
 
-#include "../status.h"
-#include "../controller.h"
+#include "../lib/status.h"
+#include "../lib/controller.h"
 
 #define ever ;;
 

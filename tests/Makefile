@@ -43,13 +43,19 @@ AVRDUDE = avrdude
 ## The name of your project (without the .c)
 ## Or name it automatically after the enclosing directory
 TEST_SOLENOID = test_solenoid
+TEST_ALT = test_alt
 
 # Object files: will find all .c/.h files in current directory
 #  and in LIBDIR.  If you have any other (sub-)directories with code,
 #  you can add them in to SOURCES below in the wildcard statement.
-SOURCES=$(wildcard *.c ../lib/*.c)
-OBJECTS=$(SOURCES:.c=.o)
-HEADERS=$(SOURCES:.c=.h)
+LIB_SOURCES=$(wildcard ../lib/*.c)
+HEADERS=$(LIB_SOURCES.c=.h)
+
+SOLENOID_SOURCES=$(wildcard test_solenoid.c ../lib/*.c)
+SOLENOID_OBJECTS=$(SOLENOID_SOURCES:.c=.o)
+
+ALT_SOURCES=$(wildcard test_alt.c ../lib/*.c)
+ALT_OBJECTS=$(ALT_SOURCES:.c=.o)
 
 ## Compilation options, type man avr-gcc if you're curious.
 CPPFLAGS = -DF_CPU=$(F_CPU) -DBAUD=$(BAUD) -I.
@@ -58,9 +64,8 @@ CFLAGS = -O3 -g -std=gnu99 -Wall
 CFLAGS += -funsigned-char -funsigned-bitfields -fpack-struct -fshort-enums 
 ## Splits up object files per function
 CFLAGS += -ffunction-sections -fdata-sections 
-LDFLAGS = -Wl,-Map,$(TEST_SOLENOID).map
 ## Optional, but often ends up with smaller code
-LDFLAGS += -Wl,--gc-sections 
+LDFLAGS = -Wl,--gc-sections 
 ## Relax shrinks code even more, but makes disassembly messy
 ## LDFLAGS += -Wl,--relax
 ## LDFLAGS += -Wl,-u,vfprintf -lprintf_flt -lm  ## for floating-point printf
@@ -72,7 +77,10 @@ TARGET_ARCH = -mmcu=$(MCU)
 %.o: %.c $(HEADERS) Makefile
 	 $(CC) $(CFLAGS) $(CPPFLAGS) $(TARGET_ARCH) -c -o $@ $<;
 
-$(TEST_SOLENOID).elf: $(OBJECTS)
+$(TEST_SOLENOID).elf: $(SOLENOID_OBJECTS)
+	$(CC) $(LDFLAGS) $(TARGET_ARCH) $^ $(LDLIBS) -o $@
+
+$(TEST_ALT).elf: $(ALT_OBJECTS)
 	$(CC) $(LDFLAGS) $(TARGET_ARCH) $^ $(LDLIBS) -o $@
 
 %.hex: %.elf
@@ -85,27 +93,20 @@ $(TEST_SOLENOID).elf: $(OBJECTS)
 	$(OBJDUMP) -S $< > $@
 
 ## These targets don't have files named after them
-.PHONY: all disassemble disasm eeprom size clean flash fuses
+.PHONY: all solenoid alt eeprom clean flash_solenoid flash_alt fuses
 
-all: $(TEST_SOLENOID).hex
+all: 
+	@echo "Pick a test to make. Choices: solenoid alt"
+
+solenoid: $(TEST_SOLENOID).hex
+
+alt: $(TEST_ALT).hex
 
 debug:
 	@echo
 	@echo "Source files:"   $(SOURCES)
 	@echo "MCU, F_CPU, BAUD:"  $(MCU), $(F_CPU), $(BAUD)
 	@echo   
-
-# Optionally create listing file from .elf
-# This creates approximate assembly-language equivalent of your code.
-# Useful for debugging time-sensitive bits, 
-# or making sure the compiler does what you want.
-disassemble: $(TEST_SOLENOID).lst
-
-disasm: disassemble
-
-# Optionally show how big the resulting program is 
-size:  $(TEST_SOLENOID).elf
-	$(AVRSIZE) -C --mcu=$(MCU) $(TEST_SOLENOID).elf
 
 clean:
 	rm -f *.elf *.hex *.obj \
@@ -123,11 +124,14 @@ fuses:
 	./../rst.py
 	$(AVRDUDE) -c $(PROGRAMMER_TYPE) -p $(MCU) $(PROGRAMMER_ARGS) -U lfuse:w:0xe2:m -U hfuse:w:0xd9:m -U efuse:w:0xff:m
 
-flash: $(TEST_SOLENOID).hex 
+flash_solenoid: $(TEST_SOLENOID).hex 
 	# Comment out ./rst.py if not using the buspirate to program.
 	./../rst.py
 	$(AVRDUDE) -c $(PROGRAMMER_TYPE) -p $(MCU) $(PROGRAMMER_ARGS) -U flash:w:$<
-	#./pwr.py
+
+flash_alt: $(TEST_ALT).hex
+	./../rst.py
+	$(AVRDUDE) -c $(PROGRAMMER_TYPE) -p $(MCU) $(PROGRAMMER_ARGS) -U flash:w:$<
 
 ## An alias
 program: flash

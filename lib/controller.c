@@ -11,8 +11,8 @@
 #define THRESHOLD_DIST 100
 #define MAX_SOLENOID_TIME 14000
 #define CONTROLLER_P 25
-#define CONTROLLER_I 0
-#define CONTROLLER_D 0
+#define CONTROLLER_I 5
+#define CONTROLLER_D 5
 
 volatile uint16_t timer_1 = 0;
 volatile uint16_t timer_2 = 0;
@@ -57,28 +57,27 @@ void deactivate_solenoid()
     PORTB &= ~(1 << PB1);
 }
 
-uint16_t control(int32_t alt, int32_t peer_alt)
+uint16_t control(int32_t alt, int32_t peer_alt, int32_t *prev_dist, int32_t *sum_dist)
 {
-    uint16_t release_time = 0;
-    int32_t distance;
+    uint32_t release_time = 0;
+    int32_t dist, delta_dist;
 
     /* distance = alt - peer_alt; */
-    distance = peer_alt - alt;
+    dist = peer_alt - alt;
+    *sum_dist += dist;
+    delta_dist = dist - *prev_dist;
+    *prev_dist = dist;
 
     // Greater than 100 decimeters
-    if (distance > THRESHOLD_DIST)
+    if (dist > THRESHOLD_DIST)
     {
-        /* release_time = distance / PROP_SCALER; */
-        /* release_time /= 1.5;    // gain 1.5 decimeters per second per */
-        /* release_time *= 100;    // 100 grams of weight lost */
-        /* release_time /= POUR_RATE; */
-        release_time = distance * CONTROLLER_P;
+        release_time = dist * CONTROLLER_P + delta_dist * CONTROLLER_D + *sum_dist * CONTROLLER_I;
     }
 
     if (release_time > MAX_SOLENOID_TIME)
         release_time = MAX_SOLENOID_TIME;
 
-    return release_time;
+    return (uint16_t)release_time;
 }
 
 ISR(TIMER1_COMPA_vect)

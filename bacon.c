@@ -33,11 +33,11 @@ int main(void)
     uint8_t send_ballast = 0;
 
     // Initialize altitudes.
-    int32_t alt = INT32_MIN;
-    int32_t prev_alt = INT32_MIN;
-    int32_t peer_alt = INT32_MIN;
-    int32_t prev_peer_alt = INT32_MIN;
     int32_t initial_alt = INT32_MIN;
+    int32_t alt = INT32_MIN;
+    int32_t peer_alt = INT32_MIN;
+    int32_t prev_dist = 0;
+    int32_t sum_dist = 0;
 
     status_pin_init();
     tim_init();
@@ -154,7 +154,7 @@ int main(void)
                     if (alt - initial_alt > 1750)
                     {
                         send_ballast = 1;
-                        ballast_time = control(alt, peer_alt);
+                        ballast_time = control(alt, peer_alt, &prev_dist, &sum_dist);
                         activate_solenoid(ballast_time);
                     }
                 }
