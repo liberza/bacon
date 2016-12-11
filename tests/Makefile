@@ -128,10 +128,12 @@ flash_solenoid: $(TEST_SOLENOID).hex
 	# Comment out ./rst.py if not using the buspirate to program.
 	./../rst.py
 	$(AVRDUDE) -c $(PROGRAMMER_TYPE) -p $(MCU) $(PROGRAMMER_ARGS) -U flash:w:$<
+	./../pwr.py
 
 flash_alt: $(TEST_ALT).hex
 	./../rst.py
 	$(AVRDUDE) -c $(PROGRAMMER_TYPE) -p $(MCU) $(PROGRAMMER_ARGS) -U flash:w:$<
+	./../pwr.py
 
 ## An alias
 program: flash
