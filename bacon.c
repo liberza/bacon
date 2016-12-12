@@ -17,9 +17,12 @@
 #define USART_BAUDRATE 1200
 #define BAUD_PRESCALE (((F_CPU / (USART_BAUDRATE * 16UL))) - 1)
 #define ever ;;
-#define RX_TIMEOUT 1453
-#define SIM_INTERVAL 500
-#define PEER_INTERVAL 10000
+
+#define RX_TIMEOUT 707
+#define SIM_INTERVAL 503
+#define PEER_INTERVAL 503
+#define CONTROL_INTERVAL 10039
+
 #define INITIAL_RISE 1750
 
 int main(void)
@@ -40,7 +43,6 @@ int main(void)
     int32_t alt = INT32_MIN;
     int32_t peer_alt = INT32_MIN;
     int32_t prev_dist = 0;
-    int32_t sum_dist = 0;
 
     status_pin_init();
     tim_init();
@@ -62,19 +64,17 @@ int main(void)
         // Stay in this loop until we get our first altitude.
         while (initial_alt == INT32_MIN)
         {
-            /* if (((sim == 0) || peer == 0) && peer_timer >= 5300) */
-            if (((sim == 0) || peer == 0) && peer_timer >= SIM_INTERVAL)
+            if (((sim == 0) || peer == 0) && peer_timer >= PEER_INTERVAL)
             {
                 tx((uint8_t*)&MSG_TYPES.WAT_REQUEST, 1, BROADCAST, 0x00);
                 peer_timer = 0;
             }
-            /* else if ((sim != 0) && (peer != 0) && sim_timer >= 10000) */
             else if ((sim != 0) && (peer != 0) && sim_timer >= SIM_INTERVAL)
             {
                 send_sim_alt_request(sim, 0);
                 sim_timer = 0;
             }
-            // Try rx, timeout if over 3s
+            // Try rx, timeout if takes longer than RX_TIMEOUT
             timer_1 = 0;
             if (!rx(frame, RX_TIMEOUT))
             {
@@ -122,7 +122,13 @@ int main(void)
         for(ever)
         {
             /* if (sim_timer >= 1755) */
-            if (sim_timer >= SIM_INTERVAL)
+            if (peer_timer >= CONTROL_INTERVAL)
+            {
+                send_payload_alt_request(peer, alt);
+                peer_timer = 0;
+                sim_timer = 450; // synchronize with the other payload
+            }
+            else if (sim_timer >= SIM_INTERVAL)
             {
                 if (send_ballast)
                 {
@@ -135,11 +141,6 @@ int main(void)
                 }
 
                 sim_timer = 0;
-            }
-            if (peer_timer >= PEER_INTERVAL)
-            {
-                send_payload_alt_request(peer, alt);
-                peer_timer = 0;
             }
             timer_1 = 0;
             if(!rx(frame, RX_TIMEOUT))
@@ -154,13 +155,14 @@ int main(void)
                 }
                 else if (msg_type == MSG_TYPES.PAYLOAD_ALT)
                 {
+                    sim_timer = 500;  // synchronize with the other payload
                     //status(STATUS4);
                     peer_alt = get_alt(frame, frame_len);
                     // Check that we rose INITIAL_RISE decimeters from our start.
                     if (alt - initial_alt > INITIAL_RISE)
                     {
                         send_ballast = 1;
-                        ballast_time = control(alt, peer_alt, &prev_dist, &sum_dist);
+                        ballast_time = control(alt, peer_alt, &prev_dist);
                         activate_solenoid(ballast_time);
                     }
                 }

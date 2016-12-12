@@ -7,10 +7,11 @@ import binascii
 # local imports
 from payload import Payload
 from xbee import XBee
+from liveplot import LivePlot
 import bmp
 
 # make this commandline args at some point. not right now.
-MASS1 = 2.8
+MASS1 = 2.9
 MASS2 = 3.2
 PROFILE = "profiles/umhab52.json"
 
@@ -30,6 +31,10 @@ if __name__ == "__main__":
     # Ok, we have two payloads.
     # Wait for one to request an altitude.
     print("Waiting for initial altitude requests...")
+
+    lp = LivePlot()
+    p1_line = lp.create_line()
+    p2_line = lp.create_line()
 
     launched = False
     p1_ready = False
@@ -72,7 +77,7 @@ if __name__ == "__main__":
             # Send them their current alt.
             if (cur_p.alt() is not None):
                 timestamp = datetime.fromtimestamp(cur_time).strftime("[%H:%M:%S]")
-                alt_m = cur_p.alt()/10.0
+                alt_m = cur_p.alt()/10.0 # decimeters to meters
                 speed = (alt_m-last_alt_m)/(cur_time-last_time)
                 if (speed == None):
                     speed = 0
@@ -80,6 +85,10 @@ if __name__ == "__main__":
                 alt = cur_p.alt()
                 cur_p.last_alt = alt
                 xb.tx("s" + str(int(alt)), cur_p.addr)
+                if (cur_p.name == "P1"):
+                    lp.update_line(time.time(), alt, p1_line)
+                elif (cur_p.name == "P2"):
+                    lp.update_line(time.time(), alt, p2_line)
             else:
                 if (cur_p.addr == p1.addr):
                     p1_landed = True
@@ -105,3 +114,7 @@ if __name__ == "__main__":
                 print("Another payload?")
                 continue
             print(cur_p.name + " says one alt is " + parsed[1].decode())
+        elif (msg_type == bmp.MSG_TYPES['WAT_REQUEST']):
+            # Respond, saying "I am the simulator".
+            addr = int.from_bytes(parsed[2], byteorder="big")
+            xb.tx(parsed[1], addr)

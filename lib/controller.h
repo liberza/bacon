@@ -17,7 +17,7 @@ void activate_solenoid(uint16_t on_time);
 
 void deactivate_solenoid();
 
-uint16_t control(int32_t alt, int32_t peer_alt, int32_t *prev_dist, int32_t *sum_dist);
+uint16_t control(int32_t alt, int32_t peer_alt, int32_t *prev_dist);
 
 ISR(TIMER1_COMPA_vect);
 

@@ -8,11 +8,11 @@
 #include "controller.h"
 
 #define PEERING_LED_DELAY 500
-#define THRESHOLD_DIST 100
-#define MAX_SOLENOID_TIME 5000
-#define CONTROLLER_P 20
+#define THRESHOLD_DIST 50
+#define MAX_SOLENOID_TIME 8000
+#define CONTROLLER_P 25
 #define CONTROLLER_I 0
-#define CONTROLLER_D 5
+#define CONTROLLER_D 40
 
 volatile uint16_t timer_1 = 0;
 volatile uint16_t timer_2 = 0;
@@ -22,8 +22,7 @@ volatile uint16_t solenoid_on_time = 0;
 volatile uint8_t solenoid_on = 0;
 volatile uint8_t currently_peering = 0;
 
-// timeout fix
-
+// Initialize timer.
 void tim_init()
 {
     // 1ms resolution
@@ -51,15 +50,17 @@ void activate_solenoid(uint16_t on_time)
     solenoid_on_time = on_time;
 }
 
+// Deactivate the solenoid.
 void deactivate_solenoid()
 {
     solenoid_on = 0;
     PORTB &= ~(1 << PB1);
 }
 
-uint16_t control(int32_t alt, int32_t peer_alt, int32_t *prev_dist, int32_t *sum_dist)
+// Determine how long to turn the solenoid on for.
+uint16_t control(int32_t alt, int32_t peer_alt, int32_t *prev_dist)
 {
-    uint32_t release_time = 0;
+    int32_t release_time = 0;
     int32_t dist, delta_dist;
 
     /* distance = alt - peer_alt; */
@@ -74,6 +75,8 @@ uint16_t control(int32_t alt, int32_t peer_alt, int32_t *prev_dist, int32_t *sum
 
     if (release_time > MAX_SOLENOID_TIME)
         release_time = MAX_SOLENOID_TIME;
+    else if (release_time < 0)
+        release_time = 0;
 
     return (uint16_t)release_time;
 }
