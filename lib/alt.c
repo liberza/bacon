@@ -14,10 +14,10 @@ void cmd_reset(void)
 	csb_hi();
 }
 
-unsigned long cmd_adc(char cmd)
+int32_t cmd_adc(char cmd)
 {
-	unsigned int ret;
-	unsigned long temp;
+	int32_t ret;
+	int32_t temp;
 
 	temp = 0;
 	
@@ -58,10 +58,10 @@ unsigned long cmd_adc(char cmd)
 	return temp;
 }
 
-unsigned int cmd_prom(char coef_num)
+uint16_t cmd_prom(char coef_num)
 {
-	unsigned int ret;
-	unsigned int rC;
+	uint16_t ret;
+	uint16_t rC;
 
 	rC = 0;
 
@@ -80,6 +80,7 @@ unsigned int cmd_prom(char coef_num)
 	return rC;
 }
 
+/*
 double read_sensor(void)
 {
 	unsigned long D1;
@@ -129,13 +130,13 @@ double altitude(void)
 	double pressure;
 	pressure = read_sensor();
 	
-	/* 
-	 * Calculate altitude using simplified barometric equation:
-	 *
-	 * 					  /         1/5.255\
-	 * altitude = 44330 * \1 - (p/p0)      /
-	 *
-	 */
+	// 
+	// * Calculate altitude using simplified barometric equation:
+	// *
+	// * 					  /         1/5.255\
+	// * altitude = 44330 * \1 - (p/p0)      /
+	// *
+	// 
 	pressure /= P0;
 	pressure = pow(pressure, (1/5.255));
 	pressure = 1 - pressure;
@@ -143,4 +144,4 @@ double altitude(void)
 
 	return altitude;
 	
-}
+}*/
