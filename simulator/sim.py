@@ -13,6 +13,7 @@ import bmp
 # make this commandline args at some point. for now, this is completely fine.
 MASS1 = 2.9
 MASS2 = 3.2
+BALLAST = 0.5
 PROFILE = "profiles/umhab52.json"
 
 # Let's simulate some balloons.
@@ -26,8 +27,8 @@ if __name__ == "__main__":
         exit()
 
     # two payloads, 0.5L of ballast.
-    p1 = Payload(PROFILE, MASS1, 0.5, "P1")
-    p2 = Payload(PROFILE, MASS2, 0.5, "P2")
+    p1 = Payload(PROFILE, MASS1, BALLAST, "P1")
+    p2 = Payload(PROFILE, MASS2, BALLAST, "P2")
 
     # First order of business: figure out who's who.
     print("Performing initial peering...")
