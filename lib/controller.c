@@ -1,5 +1,6 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
+#include <avr/wdt.h>
 #include <stdlib.h>
 #include "xbee.h"
 #include "bmp.h"
@@ -8,11 +9,11 @@
 #include "controller.h"
 
 #define PEERING_LED_DELAY 500
-#define THRESHOLD_DIST 50
+#define THRESHOLD_DIST 30
 #define MAX_SOLENOID_TIME 15000
-#define CONTROLLER_P 8
+#define CONTROLLER_P 20
 #define CONTROLLER_I 0
-#define CONTROLLER_D 110
+#define CONTROLLER_D 80
 
 volatile uint16_t timer_1 = 0;
 volatile uint16_t timer_2 = 0;
@@ -77,6 +78,9 @@ uint16_t control(int32_t alt, int32_t peer_alt, int32_t *prev_dist)
 
     if (release_time > MAX_SOLENOID_TIME)
         release_time = MAX_SOLENOID_TIME;
+    else if (delta_dist < 0)
+        // if we're getting closer, don't drop anything
+        release_time = 0;
     else if (release_time < 0)
         release_time = 0;
 
@@ -87,6 +91,7 @@ uint16_t control(int32_t alt, int32_t peer_alt, int32_t *prev_dist)
 // solenoid deactivation. The RX interrupt has priority over this, hence ISR_NOBLOCK.
 ISR(TIMER1_COMPA_vect, ISR_NOBLOCK)
 {
+    wdt_reset();
     // timer is a ms counter
     timer_1++;
     timer_2++;

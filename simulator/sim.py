@@ -86,9 +86,9 @@ if __name__ == "__main__":
                 cur_p.last_alt = alt
                 xb.tx("s" + str(int(alt)), cur_p.addr)
                 if (cur_p.name == "P1"):
-                    lp.update_line(time.time(), alt, p1_line)
+                    lp.update_line(cur_time, alt_m, p1_line)
                 elif (cur_p.name == "P2"):
-                    lp.update_line(time.time(), alt, p2_line)
+                    lp.update_line(cur_time, alt_m, p2_line)
             else:
                 if (cur_p.addr == p1.addr):
                     p1_landed = True

@@ -1,5 +1,6 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
+#include <avr/wdt.h>
 #include <util/delay.h>
 #include <util/atomic.h>
 
@@ -17,10 +18,11 @@
 #define USART_BAUDRATE 1200
 #define BAUD_PRESCALE (((F_CPU / (USART_BAUDRATE * 16UL))) - 1)
 #define ever ;;
+#define NO_ADDR (uint64_t)0
 
-#define RX_TIMEOUT 2000
-#define SIM_INTERVAL 503
-#define PEER_INTERVAL 1500
+#define RX_TIMEOUT 211
+#define SIM_INTERVAL 223
+#define PEER_INTERVAL 223
 #define CONTROL_INTERVAL 15000
 
 #define INITIAL_RISE 1750
@@ -28,8 +30,8 @@
 int main(void)
 {
     // Initialize addresses
-    uint64_t peer = (uint64_t)0;
-    uint64_t sim = (uint64_t)0;
+    uint64_t peer = NO_ADDR;
+    uint64_t sim = NO_ADDR;
 
     uint8_t wat_type;
     uint16_t frame_len;
@@ -45,11 +47,13 @@ int main(void)
     int32_t prev_dist = 0;
 
     status_pin_init();
+    status_set(STATUS0 | STATUS1 | STATUS2);
     tim_init();
     solenoid_init();
     serial_init(BAUD_PRESCALE, DATA_BITS_8, STOP_BITS_1, PARITY_DISABLED);
     xbee_init();
     sei();
+    wdt_enable(WDTO_1S);
 
     // Send a WAT request right when booting up.
     tx((uint8_t*)&MSG_TYPES.WAT_REQUEST, 1, BROADCAST, 0x00);
@@ -64,12 +68,12 @@ int main(void)
         // Stay in this loop until we get our first altitude.
         while (initial_alt == INT32_MIN)
         {
-            if (((sim == 0) || peer == 0) && peer_timer >= PEER_INTERVAL)
+            if (((sim == NO_ADDR) || peer == NO_ADDR) && peer_timer >= PEER_INTERVAL)
             {
                 tx((uint8_t*)&MSG_TYPES.WAT_REQUEST, 1, BROADCAST, 0x00);
                 peer_timer = 0;
             }
-            else if ((sim != 0) && (peer != 0) && sim_timer >= SIM_INTERVAL)
+            else if ((sim != NO_ADDR) && (peer != NO_ADDR) && sim_timer >= PEER_INTERVAL)
             {
                 send_sim_alt_request(sim, 0);
                 sim_timer = 0;
@@ -78,14 +82,17 @@ int main(void)
             timer_1 = 0;
             if (!rx(frame, RX_TIMEOUT))
             {
-                /* status_clear(STATUS2); */
+                status_clear(STATUS2);
                 frame_len = get_frame_len(frame);
                 msg_type = get_msg_type(frame, frame_len);
                 if (msg_type == MSG_TYPES.WAT_REQUEST)
                 {
-                    send_wat_reply(get_source_addr(frame));
-                    if (peer != 0)
+                    uint64_t src = get_source_addr(frame);
+                    send_wat_reply(src);
+                    if ((peer != NO_ADDR) && src != peer)
                     {   // Send peer's address to show we peered successfully
+                        if (sim == NO_ADDR)
+                            sim = src;
                         send_peer_addr(peer, sim);
                     }
                 }
@@ -102,7 +109,13 @@ int main(void)
                 {
                     initial_alt = get_alt(frame, frame_len);
                 }
-                /* status_set(STATUS2); */
+                else
+                {
+                    // Got an unknown message. Hold off on transmitting and read more.
+                    peer_timer = 0;
+                    sim_timer = 0;
+                }
+                status_set(STATUS2);
             }
         }
 
@@ -172,9 +185,7 @@ int main(void)
                 }
                 else if (msg_type == MSG_TYPES.WAT_REQUEST)
                 {
-                    status_set(STATUS4);
                     send_wat_reply(get_source_addr(frame));
-                    status_clear(STATUS4);
                 }
                 else
                 {

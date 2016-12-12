@@ -43,13 +43,23 @@ AVRDUDE = avrdude
 ## The name of your project (without the .c)
 ## Or name it automatically after the enclosing directory
 TARGET = bacon
+TEST_SOLENOID = test_solenoid
+TEST_ALT = test_alt
 
 # Object files: will find all .c/.h files in current directory
 #  and in LIBDIR.  If you have any other (sub-)directories with code,
 #  you can add them in to SOURCES below in the wildcard statement.
-SOURCES=$(wildcard *.c lib/*.c)
+LIB_SOURCES=$(wildcard ../lib/*.c)
+
+SOLENOID_SOURCES=$(wildcard tests/test_solenoid.c ../lib/*.c)
+SOLENOID_OBJECTS=$(SOLENOID_SOURCES:.c=.o)
+
+ALT_SOURCES=$(wildcard tests/test_alt.c ../lib/*.c)
+ALT_OBJECTS=$(ALT_SOURCES:.c=.o)
+
+MAIN_SOURCES=$(wildcard bacon.c lib/*.c)
 OBJECTS=$(SOURCES:.c=.o)
-HEADERS=$(SOURCES:.c=.h)
+HEADERS=$(LIB_SOURCES:.c=.h)
 
 ## Compilation options, type man avr-gcc if you're curious.
 CPPFLAGS = -DF_CPU=$(F_CPU) -DBAUD=$(BAUD) -I.
