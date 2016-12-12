@@ -79,7 +79,7 @@ uint8_t tx(uint8_t *data, uint16_t data_len, uint64_t dest, uint8_t opts)
     frame[1] = (uint8_t)(data_len >> 8);
     frame[2] = (uint8_t)(data_len);
     frame[3] = FRAME_TYPES.TX;
-    frame[4] = 0x01;
+    frame[4] = 0x00;    // disable TX STATUS response
     frame[5] = (uint8_t)(dest >> 56);
     frame[6] = (uint8_t)(dest >> 48);
     frame[7] = (uint8_t)(dest >> 40);
