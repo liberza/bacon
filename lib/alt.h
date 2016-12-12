@@ -21,8 +21,9 @@
 
 // CHANGE FOLLOWING DEFINITIONS TO ACTUAL CS PIN
 #define csb_hi()		(PORTB &= ~(1 << PB2))// setting SS low
-#define csb_lo()		(PORTB &= ~(1 << PB2))
-//#define csb_lo()		(PORTB |= (1 << PB2))// setting SS high
+//#define csb_lo()		(PORTB &= ~(1 << PB2))
+//#define csb_hi()		(PORTB |= (1 << PB2))// setting SS high
+#define csb_lo()		(PORTB |= (1 << PB2))// setting SS high
 
 #include <avr/io.h>
 #include <avr/interrupt.h>
@@ -48,16 +49,7 @@ int32_t cmd_adc(
 	);
 
 uint16_t cmd_prom(
-	char coef_num
+	int coef_num
 	);
 
-/*
-double read_sensor(
-	void
-	);
-
-double altitude(
-	void
-	);
-*/
 #endif

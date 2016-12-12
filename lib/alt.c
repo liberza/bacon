@@ -16,14 +16,14 @@ void cmd_reset(void)
 
 int32_t cmd_adc(char cmd)
 {
-	int32_t ret;
+	int8_t ret;
 	int32_t temp;
 
 	temp = 0;
 	
-	csb_lo();
+	csb_hi();
 	spi_cmd_send(CMD_ADC_CONV + cmd);
-
+	
 	// delays based on command sent
 	switch (cmd & 0x0f)
 	{
@@ -33,10 +33,12 @@ int32_t cmd_adc(char cmd)
 		case CMD_ADC_2048	:	_delay_ms(6);
 		case CMD_ADC_4096	:	_delay_ms(10);
 	}
+
 	
 	// pull csb high and then low to finish conversion
-	csb_hi();
 	csb_lo();
+	_delay_ms(2);
+	csb_hi();
 
 	// sends ADC read command
 	spi_cmd_send(CMD_ADC_READ);
@@ -53,19 +55,19 @@ int32_t cmd_adc(char cmd)
 	ret = SPDR;
 	temp = temp + ret;
 
-	csb_hi();	// finished conversion
+	csb_lo();	// finished conversion
 	
 	return temp;
 }
 
-uint16_t cmd_prom(char coef_num)
+uint16_t cmd_prom(int coef_num)
 {
-	uint16_t ret;
+	uint8_t ret;
 	uint16_t rC;
 
 	rC = 0;
 
-	csb_lo();
+	csb_hi();
 	spi_cmd_send(CMD_PROM_RD + coef_num*2);
 	spi_cmd_send(0x00);
 	ret = SPDR;
@@ -75,73 +77,7 @@ uint16_t cmd_prom(char coef_num)
 	ret = SPDR;
 
 	rC = rC + ret;
-	csb_hi();
+	csb_lo();
 
 	return rC;
 }
-
-/*
-double read_sensor(void)
-{
-	unsigned long D1;
-	unsigned long D2;
-	unsigned int C[8];
-	double P;
-	//double T;
-	double dT;
-	double OFF;
-	double SENS;
-
-	int i;
-
-	// SS, MOSI, and SCK as outputs
-	DDRB |= (1 << PB3) | (1 << PB5) | (1 << PB2);
-	
-	// MISO as input
-	DDRB &= ~(1 << PB4);
-	
-	// SPI settings: master, mode 0, f/4
-	SPCR = (1 << SPE) | (1 << MSTR);
-	
-	// module should be reset upon power up.
-	// cmd_reset(); 
-
-	for ( i = 0; i < 8; i++){
-		C[i] = cmd_prom(i);
-	}
-	
-	// read temperature (uncompensated)
-	D1 = cmd_adc(CMD_ADC_D1 + CMD_ADC_256);
-	D2 = cmd_adc(CMD_ADC_D2 + CMD_ADC_4096);
-
-	dT = D2 - C[5]*pow(2,8);
-	OFF = C[2]*pow(2,17) + dT*C[4]/pow(2,6);
-	SENS = C[1]*pow(2,16) + dT*C[3]/pow(2,7);
-
-	//T = (2000 + (dT*C[6])/pow(2,23))/100;
-	P = (((D1*SENS)/pow(2,21) - OFF)/pow(2,15))/100;
-
-	return P;
-}
-
-double altitude(void)
-{
-	double altitude;
-	double pressure;
-	pressure = read_sensor();
-	
-	// 
-	// * Calculate altitude using simplified barometric equation:
-	// *
-	// * 					  /         1/5.255\
-	// * altitude = 44330 * \1 - (p/p0)      /
-	// *
-	// 
-	pressure /= P0;
-	pressure = pow(pressure, (1/5.255));
-	pressure = 1 - pressure;
-	altitude = 44330 * pressure;
-
-	return altitude;
-	
-}*/
