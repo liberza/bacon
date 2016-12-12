@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 
 # BMP - BACON Message Protocol
 
-TIMEOUT = timedelta(seconds=5)
+TIMEOUT = timedelta(seconds=4)
 
 '''
 Here's how this works:

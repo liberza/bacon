@@ -64,7 +64,7 @@ class XBee():
         frame = bytearray(((frame_size >> 8) & 0x0FF, 
                            (frame_size & 0x0FF),
                            self.FRAME_TYPES['TX'],
-                           0x01,
+                           0x00,
                            # destination
                            (dest >> 56) & 0x0FF,
                            (dest >> 48) & 0x0FF,
