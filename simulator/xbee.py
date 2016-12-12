@@ -49,7 +49,7 @@ class XBee():
                                     bytesize=serial.EIGHTBITS
                                     )
         self.serial.flush()
-        self.max_payload = 100
+        self.max_frame = 255
 
     def tx(self, data, dest=0x000000000000FFFF, opts=0x00):
         '''
@@ -58,7 +58,7 @@ class XBee():
         opts are the frame options.
         '''
         frame_size = len(data) + 14     # tx api frame has 14 bytes overhead
-        if (frame_size > max_frame):
+        if (frame_size > self.max_frame):
             print("Frame too long, not sending.")
             return False
 

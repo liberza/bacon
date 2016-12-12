@@ -2,7 +2,6 @@
 from xbee import XBee
 from datetime import datetime, timedelta
 
-
 # BMP - BACON Message Protocol
 
 TIMEOUT = timedelta(seconds=0.997)
@@ -97,6 +96,7 @@ def init_peering(p1, p2, xb):
                 addr = int.from_bytes(parsed[2], byteorder="big")
                 xb.tx(parsed[1], addr)
             elif (parsed[0] == MSG_TYPES['PEER_ADDR']):
+                # This payload knows about its peer.
                 payload_addr = int.from_bytes(parsed[1], byteorder="big")
                 peer_addr = int.from_bytes(parsed[2], byteorder="big")
                 if ((payload_addr == p1.addr) and (p1_peered == False)):
