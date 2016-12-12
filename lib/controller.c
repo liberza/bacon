@@ -78,7 +78,9 @@ uint16_t control(int32_t alt, int32_t peer_alt, int32_t *prev_dist, int32_t *sum
     return (uint16_t)release_time;
 }
 
-ISR(TIMER1_COMPA_vect)
+// Timer ISR. Handles timer-sensitive events. Particularly, LED blinking and
+// solenoid deactivation. The RX interrupt has priority over this, hence ISR_NOBLOCK.
+ISR(TIMER1_COMPA_vect, ISR_NOBLOCK)
 {
     // timer is a ms counter
     timer_1++;

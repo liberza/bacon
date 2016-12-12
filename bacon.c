@@ -166,13 +166,13 @@ int main(void)
                 }
                 else if (msg_type == MSG_TYPES.PAYLOAD_ALT_REQUEST)
                 {
-                    //status(STATUS5);
                     send_alt(peer, alt);
                 }
                 else if (msg_type == MSG_TYPES.WAT_REQUEST)
                 {
-                    //status(STATUS6);
+                    status_set(STATUS4);
                     send_wat_reply(get_source_addr(frame));
+                    status_clear(STATUS4);
                 }
                 else
                 {

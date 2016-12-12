@@ -12,6 +12,7 @@ volatile uint8_t rx_flag = 0;
 uint8_t func_code = 0x00;
 uint8_t err_code = 0x00;
 
+// Digimesh frame types. Typically the 4th byte in a frame.
 const struct frame_types_t FRAME_TYPES =
 {
     .AT             = (uint8_t)0x08,
@@ -61,17 +62,18 @@ void xbee_init()
 uint8_t tx(uint8_t *data, uint16_t data_len, uint64_t dest, uint8_t opts)
 {
     status_clear(STATUS1);
-    /* uint8_t frame[MAX_BUF_SIZE]; */
-    uint8_t frame[MAX_BUF_SIZE + 18];
+    uint8_t frame[MAX_BUF_SIZE];
+    /* uint8_t frame[MAX_BUF_SIZE + 18]; */
 
     // TX frame has 14 bytes overhead
-    // does not include delimiter or length
+    // does not include delimiter or length or checksum
     data_len += 14;
+    // add delimiter and length and checksum
     uint16_t frame_len = data_len + 4;
     uint8_t sum = 0;
 
-    /* if (frame_len > MAX_BUF_SIZE) */
-        /* return FRAME_SIZE_ERR;  */
+    if (frame_len > MAX_BUF_SIZE)
+        return FRAME_SIZE_ERR;
 
     frame[0] = 0x7E;
     frame[1] = (uint8_t)(data_len >> 8);
@@ -108,11 +110,11 @@ uint8_t tx(uint8_t *data, uint16_t data_len, uint64_t dest, uint8_t opts)
     frame[frame_len - 1] = 0xFF - sum;
 
     // send it
-    // escape it if we have to.
+    // escape it if we have to, but not the frame delimiter
     put_byte(frame[0]);
     for (int i=1; i < frame_len; i++)
     {
-        status_clear(STATUS3);
+        status_set(STATUS5);
         if (frame[i] == SPECIAL_BYTES.FRAME_DELIM ||
             frame[i] == SPECIAL_BYTES.ESCAPE      ||
             frame[i] == SPECIAL_BYTES.XON         ||
@@ -125,7 +127,7 @@ uint8_t tx(uint8_t *data, uint16_t data_len, uint64_t dest, uint8_t opts)
         {
             put_byte(frame[i]);
         }
-        status_set(STATUS3);
+        status_clear(STATUS5);
     }
             
     status_set(STATUS1);
@@ -140,7 +142,7 @@ uint8_t rx(uint8_t *frame, uint16_t timeout)
     // Add timeout here.
     /* while(rx_flag == 0); */
     /* rx_flag = 0; */
-    status_clear(STATUS2);
+    /* status_clear(STATUS2); */
     do
     {
         // zero-out the frame buffer before each check.
@@ -150,7 +152,7 @@ uint8_t rx(uint8_t *frame, uint16_t timeout)
         ret = find_frame(&rbuf, frame);
     }
     while ((ret != 0) && (timeout > timer_1));
-    status_set(STATUS2);
+    /* status_set(STATUS2); */
     return ret;
 }
 
@@ -175,6 +177,12 @@ uint8_t find_frame(volatile rbuf_t *r, uint8_t *frame)
     if (rbuf_read(r, 0) == SPECIAL_BYTES.FRAME_DELIM)
     {
         buf_len = rbuf_len(r);
+        if (buf_len > MAX_BUF_SIZE)
+        {
+            // Buffer longer than max frame. Throw it away.
+            shift_frame_out(&rbuf);
+            return FRAME_SIZE_ERR;
+        }
         for (int i=0; i < buf_len; i++)
         {
             frame[i] = rbuf_read(r, i);
@@ -212,6 +220,7 @@ uint8_t validate_frame(uint8_t *frame, uint16_t buf_len)
         }
         else
         {
+            // Not done receiving this frame.
             ret = FRAME_RX_INCOMPLETE;
         }
     }
@@ -226,7 +235,6 @@ uint8_t validate_frame(uint8_t *frame, uint16_t buf_len)
         if ((uint8_t)(sum & 0xFF) != (uint8_t)0xFF)
         {
             ret = FRAME_SUM_ERR;
-            tx(frame, buf_len, 0x000000000000FFFF, 0x00);
         }
         // Shift it out of the buffer, whether it's good or not.
         rbuf_shift(&rbuf, frame_len);
@@ -349,4 +357,3 @@ ISR(USART_RX_vect)
     rbuf.buf[rbuf.end++] = UDR0;
     rx_flag = 1;
 }
-

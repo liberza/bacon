@@ -108,13 +108,9 @@ size:  $(TARGET).elf
 	$(AVRSIZE) -C --mcu=$(MCU) $(TARGET).elf
 
 clean:
-	rm -f $(TARGET).elf $(TARGET).hex $(TARGET).obj \
-	$(TARGET).o $(TARGET).d $(TARGET).eep $(TARGET).lst \
-	$(TARGET).lss $(TARGET).sym $(TARGET).map \
-	$(TARGET).eeprom
-
-squeaky_clean:
-	rm -f *.elf *.hex *.obj *.o *.d *.eep *.lst *.lss *.sym *.map *~ *.eeprom
+	rm -f *.elf *.hex *.obj *.o *.d *.eep *.lst *.lss *.sym *.map *.eeprom \
+	lib/*.elf lib/*.hex lib/*.obj lib/*.o lib/*.d lib/*.eep lib/*.lst lib/*.lss \
+	lib/*.sym lib/*.map lib/*.eeprom
 
 ##########------------------------------------------------------##########
 ##########              Programmer-specific details             ##########
