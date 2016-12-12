@@ -13,7 +13,7 @@ import bmp
 # make this commandline args at some point. for now, this is completely fine.
 MASS1 = 2.9
 MASS2 = 3.2
-BALLAST = 0.5
+BALLAST = 0.581 # half liter bottle capacity, minus 10ml
 PROFILE = "profiles/umhab52.json"
 
 # Let's simulate some balloons.
@@ -26,7 +26,7 @@ if __name__ == "__main__":
         print("XBee not connected. Try plugging it in or changing the default from /dev/xbee.")
         exit()
 
-    # two payloads, 0.5L of ballast.
+    # two payloads
     p1 = Payload(PROFILE, MASS1, BALLAST, "P1")
     p2 = Payload(PROFILE, MASS2, BALLAST, "P2")
 
