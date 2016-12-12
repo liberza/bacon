@@ -12,17 +12,17 @@ class Payload():
 
     addr = None
     name = "Payload"
-    time_index = 0.0 # s
-    timestep = 1.0 # gets larger as ballast is dropped.
+    time_index = 0.0 # index into the flight profile data, in seconds.
+    timestep = 1.0 # gets larger as weight decreases.
     last_request_time = 0
     last_alt = 0
     
-    def __init__(self, filename, mass, name):
+    def __init__(self, filename, mass, ballast, name):
         self.parse_profile(filename)
         self.initial_mass = mass # kg
         self.mass = self.initial_mass # kg
         # ballast is included in total mass.
-        self.initial_ballast = 0.5 # liters 
+        self.initial_ballast = ballast # liters 
         self.name = name
 
     def parse_profile(self, filename):

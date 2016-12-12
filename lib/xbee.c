@@ -8,9 +8,6 @@
 #include <util/atomic.h>
 
 volatile rbuf_t rbuf;
-volatile uint8_t rx_flag = 0;
-uint8_t func_code = 0x00;
-uint8_t err_code = 0x00;
 
 // Digimesh frame types. Typically the 4th byte in a frame.
 const struct frame_types_t FRAME_TYPES =
@@ -139,10 +136,6 @@ uint8_t tx(uint8_t *data, uint16_t data_len, uint64_t dest, uint8_t opts)
 uint8_t rx(uint8_t *frame, uint16_t timeout)
 {
     uint8_t ret = 1;
-    // Add timeout here.
-    /* while(rx_flag == 0); */
-    /* rx_flag = 0; */
-    /* status_clear(STATUS2); */
     do
     {
         // zero-out the frame buffer before each check.
@@ -237,8 +230,8 @@ uint8_t validate_frame(uint8_t *frame, uint16_t buf_len)
             ret = FRAME_SUM_ERR;
         }
         // Shift it out of the buffer, whether it's good or not.
-        rbuf_shift(&rbuf, frame_len);
-        /* shift_frame_out(&rbuf); */
+        /* rbuf_shift(&rbuf, frame_len); */
+        shift_frame_out(&rbuf);
     }
     return ret;
 }
@@ -355,5 +348,4 @@ ISR(USART_RX_vect)
     if (rbuf.end >= MAX_BUF_SIZE)
         rbuf.end = 0;
     rbuf.buf[rbuf.end++] = UDR0;
-    rx_flag = 1;
 }
