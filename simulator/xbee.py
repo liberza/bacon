@@ -6,6 +6,7 @@ import binascii
 
 # class for managing XBee API mode 
 class XBee():
+    # Bytes which need to be escaped in frames
     SPECIAL_BYTES = {
         'FRAME_DELIM':  0x7E,
         'ESCAPE':       0x7D,
@@ -13,8 +14,10 @@ class XBee():
         'XOFF':         0x13,
     }
 
+    # Digimesh broadcast addr
     BROADCAST = 0x000000000000FFFF
 
+    # Digimesh frame types
     FRAME_TYPES = {
         'AT':           0x08,
         'AT_QPV':       0x09,
@@ -32,10 +35,10 @@ class XBee():
     }
 
     BUF_FULL_TIMEOUT = 5
-    BUF_GET_TIMEOUT = 10
 
+    # queue to hold validated frames
     rx_queue = queue.Queue()
-
+    # buffer to hold partial frames
     rx_buf = bytearray()
 
     def __init__(self, devfile, baud):
@@ -46,9 +49,6 @@ class XBee():
                                     bytesize=serial.EIGHTBITS
                                     )
         self.serial.flush()
-        # need to do some initialization here.
-        # enter AT mode and get the address of the xbee. upper 32 bits:"ATSH" lower 32 bits:"ATSL"
-        # also get the max payload size with "ATNP"
         self.max_payload = 100
 
     def tx(self, data, dest=0x000000000000FFFF, opts=0x00):
@@ -57,10 +57,11 @@ class XBee():
         dest is the 64-bit digimesh address to tx to.
         opts are the frame options.
         '''
-        if (len(data) > self.max_payload):
-            print("data too long, splitting frames is not supported yet.")
-
         frame_size = len(data) + 14     # tx api frame has 14 bytes overhead
+        if (frame_size > max_frame):
+            print("Frame too long, not sending.")
+            return False
+
         frame = bytearray(((frame_size >> 8) & 0x0FF, 
                            (frame_size & 0x0FF),
                            self.FRAME_TYPES['TX'],
@@ -92,8 +93,6 @@ class XBee():
         # prepend the unescaped delimiter
         frame = bytearray(b'\x7E') + frame
 
-        #print(binascii.hexlify(frame))
-
         return self.serial.write(frame)
 
     def rx(self):
@@ -104,10 +103,8 @@ class XBee():
         received = False
         num_bytes = self.serial.in_waiting
         self.rx_buf.extend(self.serial.read(num_bytes))
+        # each sequence is a frame. split at the delimiter.
         sequence = self.rx_buf.split(bytes(b'\x7E'))        
-        #print(sequence)
-        #sequence =  [d+e for e in rx_buf.split(d) if e != ""]
-        #print(self.rx_buf)
         for s in sequence:
             frame = self.validate_frame(s)
             if (frame is not None):
@@ -122,10 +119,12 @@ class XBee():
             return None
 
     def parse_frame(self, frame):
+        '''
+        Parse a frame. Figure out what type it is, and return the relevant data.
+        '''
         for frametype, value in self.FRAME_TYPES.items():
             if frame[2] == value:
                 break;
-        #print(frame)
 
         if (value == self.FRAME_TYPES['AT_RESP']):
             pass
@@ -143,18 +142,19 @@ class XBee():
         elif (value == self.FRAME_TYPES['EXPLICIT_RX']):
             pass
         elif (value == self.FRAME_TYPES['TX']):
-            source = frame[5:12]
-            data = frame[16:-1]
-            print(str(source))
-            print(str(data))
+            # just for debugging. the only time this should ever show up is
+            # if you have a serial cable hooked up to the TX pin of the xbee.
+            pass
         elif (value == self.FRAME_TYPES['NODE_ID']):
             pass
         elif (value == self.FRAME_TYPES['REMOTE_RESP']):
             pass
         else:
             raise Exception("Frame has invalid frame type.")
+        return None
 
     def escape(self, data):
+        ''' Put an escape character before a special character, and escape it. '''
         escaped = bytearray()
         for byte in data:
             if byte in self.SPECIAL_BYTES.values():
@@ -165,6 +165,7 @@ class XBee():
         return escaped
 
     def unescape(self, data):
+        ''' Think "escape", but the opposite of that. '''
         unescaped = bytearray()
         last_escaped = False
         # create an iterator from range() so we can use next() on it
@@ -180,7 +181,7 @@ class XBee():
         return unescaped
 
     def validate_frame(self, frame):
-        # do frame validation here...
+        ''' Confirm that a frame is valid. Return None otherwise. '''
         frame = self.unescape(frame)
         if (frame is not None):
             if (len(frame) < 5):
@@ -201,9 +202,7 @@ class XBee():
         return frame
                 
     def get_frame(self):
-        '''
-        Returns the oldest frame in the queue, or None.
-        '''
+        ''' Returns the oldest frame in the queue, or None. '''
         if (self.rx_queue.empty() == False):
             return self.rx_queue.get(block=False)
         else:
@@ -211,15 +210,7 @@ class XBee():
         
 
 if __name__ == '__main__':
-    xb = XBee('/dev/ttyUSB0', 1200)
-    '''
-    data = bytearray((b'ASDFLOL qwerty \x11 hello {}{}'))
-    print(data)
-    new = xb.escape(data)
-    print(new)
-    unescaped = xb.unescape(new)
-    print(unescaped)
-    '''
+    xb = XBee('/dev/xbee', 1200)
     while(True):
         r = xb.rx()
         while (r == None):
@@ -231,4 +222,3 @@ if __name__ == '__main__':
             c += " " + d.decode()
         print(c)
         print("---")
-        #xb.parse_frame(r)
