@@ -120,14 +120,3 @@ if __name__ == "__main__":
             # Respond, saying "I am the simulator".
             addr = int.from_bytes(parsed[2], byteorder="big")
             xb.tx(parsed[1], addr)
-
-        '''
-        elif (msg_type == bmp.MSG_TYPES['PAYLOAD_ALT']):
-            if (addr == p1.addr):
-                p1_ready = True
-                cur_p = p1
-            elif (addr == p2.addr):
-                p2_ready = True
-                cur_p = p2
-        '''
-
