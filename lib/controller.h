@@ -1,6 +1,8 @@
 #ifndef TIMER_H
 #define TIMER_H
 
+#define PREV_DISTS 4
+
 volatile uint16_t timer_1;  // 1ms resolution timer
 volatile uint16_t timer_2;  // used for controlling solenoid time and green LED blinking
 volatile uint16_t peer_timer;   // timer for transmitting to peer
@@ -17,7 +19,7 @@ void activate_solenoid(uint16_t on_time);
 
 void deactivate_solenoid();
 
-uint16_t control(int32_t alt, int32_t peer_alt, int32_t *prev_dist);
+uint16_t control(int32_t alt, int32_t peer_alt, int32_t *prev_dists, int32_t *prev_delta_dists);
 
 ISR(TIMER1_COMPA_vect);
 

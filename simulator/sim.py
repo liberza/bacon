@@ -11,7 +11,7 @@ from liveplot import LivePlot
 import bmp
 
 # make this commandline args at some point. for now, this is completely fine.
-MASS1 = 2.9
+MASS1 = 3.0
 MASS2 = 3.2
 BALLAST = 0.581 # half liter bottle capacity, minus 10ml
 PROFILE = "profiles/umhab52.json"

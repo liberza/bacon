@@ -9,11 +9,11 @@
 #include "controller.h"
 
 #define PEERING_LED_DELAY 500
-#define THRESHOLD_DIST 30
-#define MAX_SOLENOID_TIME 10000
+#define THRESHOLD_DIST 5
+#define MAX_SOLENOID_TIME 5000
 #define CONTROLLER_P 20
 #define CONTROLLER_I 0
-#define CONTROLLER_D 80
+#define CONTROLLER_D 95
 
 volatile uint16_t timer_1 = 0;
 volatile uint16_t timer_2 = 0;
@@ -59,27 +59,43 @@ void deactivate_solenoid()
 }
 
 // Determine how long to turn the solenoid on for.
-uint16_t control(int32_t alt, int32_t peer_alt, int32_t *prev_dist)
+uint16_t control(int32_t alt, int32_t peer_alt, int32_t *prev_dists, int32_t *prev_delta_dists)
 {
     int32_t release_time = 0;
     int32_t dist, delta_dist;
+    int32_t avg_dist = 0;
+    int32_t avg_delta_dist = 0;
+
+    dist = peer_alt - alt;
+    delta_dist = dist - prev_dists[PREV_DISTS-1];
+
+    // Average the previous distances and slide the window over simultaneously.
+    for (int i=0; i<PREV_DISTS; i++) {
+        avg_dist += prev_dists[i];
+        avg_delta_dist += prev_delta_dists[i];
+        if (i != PREV_DISTS-1) {
+            prev_dists[i] = prev_dists[i+1];
+            prev_delta_dists[i] = prev_delta_dists[i+1];
+        }
+    }
+    prev_dists[PREV_DISTS-1] = dist;
+    prev_delta_dists[PREV_DISTS-1] = delta_dist;
+
+    avg_dist /= PREV_DISTS;
+    avg_delta_dist /= PREV_DISTS;
 
     // distance and delta dist:
     // if they're positive, compensate
     // if they're negative, don't
-    dist = peer_alt - alt;
-    delta_dist = dist - *prev_dist;
-    *prev_dist = dist;
-
     if (dist > THRESHOLD_DIST)
     {
-        release_time = dist * CONTROLLER_P + delta_dist * CONTROLLER_D;
+        release_time = avg_dist * CONTROLLER_P + avg_delta_dist * CONTROLLER_D;
     }
 
     if (release_time > MAX_SOLENOID_TIME)
         release_time = MAX_SOLENOID_TIME;
-    else if (delta_dist < 0)
-        // if we're getting closer, don't drop anything
+    else if (avg_delta_dist < 0)
+        // if we're getting closer, don't drop anything. 
         release_time = 0;
     else if (release_time < 0)
         release_time = 0;

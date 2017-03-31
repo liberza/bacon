@@ -23,7 +23,7 @@
 #define RX_TIMEOUT 211
 #define SIM_INTERVAL 223
 #define PEER_INTERVAL 223
-#define CONTROL_INTERVAL 10000
+#define CONTROL_INTERVAL 5000
 
 #define INITIAL_RISE 1750
 
@@ -44,7 +44,9 @@ int main(void)
     int32_t initial_alt = INT32_MIN;
     int32_t alt = INT32_MIN;
     int32_t peer_alt = INT32_MIN;
-    int32_t prev_dist = 0;
+    //int32_t prev_dist = 0;
+    int32_t prev_dists[PREV_DISTS];
+    int32_t prev_delta_dists[PREV_DISTS];
 
     status_pin_init();
     status_set(STATUS0 | STATUS1 | STATUS2);
@@ -134,7 +136,6 @@ int main(void)
         sim_timer = 0;
         for(ever)
         {
-            /* if (sim_timer >= 1755) */
             if (peer_timer >= CONTROL_INTERVAL)
             {
                 send_payload_alt_request(peer, alt);
@@ -175,7 +176,7 @@ int main(void)
                     if (alt - initial_alt > INITIAL_RISE)
                     {
                         send_ballast = 1;
-                        ballast_time = control(alt, peer_alt, &prev_dist);
+                        ballast_time = control(alt, peer_alt, prev_dists, prev_delta_dists);
                         activate_solenoid(ballast_time);
                     }
                 }

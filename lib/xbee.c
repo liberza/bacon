@@ -344,8 +344,12 @@ uint16_t get_frame_len(uint8_t *frame)
 
 ISR(USART_RX_vect)
 {
+    uint8_t d; // to hold current UDR0 value
     while(!(UCSR0A & (1<<RXC0)));
     if (rbuf.end >= MAX_BUF_SIZE)
         rbuf.end = 0;
-    rbuf.buf[rbuf.end++] = UDR0;
+    d = UDR0;
+    rbuf_append(&rbuf, d);
+    //rbuf.end++;
+    //rbuf.buf[rbuf.end] = UDR0;
 }
