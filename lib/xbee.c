@@ -69,7 +69,7 @@ uint8_t tx(uint8_t *data, uint16_t data_len, uint64_t dest, uint8_t opts)
     uint16_t frame_len = data_len + 4;
     uint8_t sum = 0;
 
-    if (frame_len > MAX_BUF_SIZE)
+    if (frame_len >= MAX_BUF_SIZE)
         return FRAME_SIZE_ERR;
 
     frame[0] = 0x7E;
@@ -170,7 +170,7 @@ uint8_t find_frame(volatile rbuf_t *r, uint8_t *frame)
     if (rbuf_read(r, 0) == SPECIAL_BYTES.FRAME_DELIM)
     {
         buf_len = rbuf_len(r);
-        if (buf_len > MAX_BUF_SIZE)
+        if (buf_len >= MAX_BUF_SIZE)
         {
             // Buffer longer than max frame. Throw it away.
             shift_frame_out(&rbuf);
@@ -205,7 +205,7 @@ uint8_t validate_frame(uint8_t *frame, uint16_t buf_len)
     frame_len = data_len + 4;
     if (frame_len > buf_len)
     {
-        if (frame_len > MAX_BUF_SIZE)
+        if (frame_len >= MAX_BUF_SIZE)
         {
             // Frame too large for the buffer.
             shift_frame_out(&rbuf);
@@ -346,8 +346,8 @@ ISR(USART_RX_vect)
 {
     uint8_t d; // to hold current UDR0 value
     while(!(UCSR0A & (1<<RXC0)));
-    if (rbuf.end >= MAX_BUF_SIZE)
-        rbuf.end = 0;
+    //if (rbuf.end >= MAX_BUF_SIZE)
+    //    rbuf.end = 0;
     d = UDR0;
     rbuf_append(&rbuf, d);
     //rbuf.end++;

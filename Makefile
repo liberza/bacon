@@ -5,7 +5,7 @@ F_CPU = 8000000UL
 # programmer settings
 BAUD  = 9600UL
 PROGRAMMER_TYPE = buspirate
-PROGRAMMER_ARGS = -P /dev/buspirate
+PROGRAMMER_ARGS = -P /dev/buspirate -V
 
 # bin locations
 CC = avr-gcc
