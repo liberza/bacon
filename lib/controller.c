@@ -9,11 +9,13 @@
 #include "controller.h"
 
 #define PEERING_LED_DELAY 500
-#define THRESHOLD_DIST 5
+#define THRESHOLD_DIST 40
 #define MAX_SOLENOID_TIME 5000
-#define CONTROLLER_P 20
-#define CONTROLLER_I 0
-#define CONTROLLER_D 95
+#define CONTROLLER_P (uint32_t)(27)
+#define CONTROLLER_D (uint32_t)(200)
+#define CONTROLLER_P_NEAR (uint32_t)(2)
+#define CONTROLLER_D_NEAR (uint32_t)(200)
+#define MAX_DESIRED_SPEED (uint32_t)(-25)
 
 volatile uint16_t timer_1 = 0;
 volatile uint16_t timer_2 = 0;
@@ -91,12 +93,19 @@ uint16_t control(int32_t alt, int32_t peer_alt, int32_t *prev_dists, int32_t *pr
     {
         release_time = avg_dist * CONTROLLER_P + avg_delta_dist * CONTROLLER_D;
     }
+    // The other payload is close, and going to pass. Start compensating.
+    else if (dist > -THRESHOLD_DIST)
+    {
+        release_time = avg_dist * CONTROLLER_P_NEAR + delta_dist * CONTROLLER_D_NEAR;
+    }
 
     if (release_time > MAX_SOLENOID_TIME)
         release_time = MAX_SOLENOID_TIME;
-    else if (avg_delta_dist < 0)
+    /*
+    else if (avg_delta_dist < MAX_DESIRED_SPEED)
         // if we're getting closer, don't drop anything. 
         release_time = 0;
+    */
     else if (release_time < 0)
         release_time = 0;
 

@@ -21,6 +21,7 @@
 #define FRAME_RX_INCOMPLETE (uint8_t)(0x08)
 
 #define BROADCAST (uint64_t)(0x000000000000FFFF)
+#define MAX_FRAME_SIZE (uint16_t)(MAX_BUF_SIZE - 1)
 
 //! Buffer for serial RX interrupt service routne.
 volatile extern rbuf_t rbuf;
