@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>TONGS graph</title>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+</head>
+<body>
+<h2><div id="p1_alt">P1 Alt: 0</div><div id="p2_alt">P2 Alt: 0</div></h2>
+<h3>Distance between payloads in meters</h3>
+<canvas id="distChart" width="1200", height="400"></canvas>
+<p>Time (H:M:S)
+<h3>Mass of payloads in kg</h3>
+<canvas id="massChart" width="1200", height="400"></canvas>
+<p>Time (H:M:S)
+
+<script type="text/javascript" src="smoothie.js"></script>
+<script>
+    window.onload = function() {
+        var p1_alt = document.getElementById("p1_alt");
+        var p2_alt = document.getElementById("p2_alt");
+        var distSeries = new TimeSeries();
+        var distChart = new SmoothieChart({
+            maxValue: 30,
+            minValue: -30,
+            timestampFormatter: SmoothieChart.timeFormatter,
+            horizontalLines: [{color: '#ffffff', lineWidth: 1, value: 0}],
+            labels: {fontSize: 18, precision:2},
+            interpolation: 'linear',
+            millisPerPixel:175,
+            grid: {verticalSections:12, borderVisible: false, millisPerLine:5000}
+        });
+        distChart.addTimeSeries(distSeries);
+        distChart.streamTo(document.getElementById("distChart"), 500);
+
+        var massSeries1 = new TimeSeries();
+        var massSeries2 = new TimeSeries();
+        var massChart = new SmoothieChart({
+            minValue: 2.5,
+            maxValue: 3.5,
+            timestampFormatter: SmoothieChart.timeFormatter,
+            labels: {fontSize: 18, precision:2},
+            interpolation: 'linear',
+            millisPerPixel:175,
+            grid: {verticalSections:10, borderVisible: false, millisPerLine:5000}
+        });
+        massChart.addTimeSeries(massSeries1, {strokeStyle: '#ff0000'});
+        massChart.addTimeSeries(massSeries2, {strokeStyle: '#00ff00'});
+        massChart.streamTo(document.getElementById('massChart'), 500);
+
+        var ws = new WebSocket("ws://127.0.0.1:5678/");
+        ws.onmessage = function (event) {
+            var data = JSON.parse(event.data)
+            var time = new Date().getTime();
+            distSeries.append(time, data['dist']);
+            massSeries1.append(time, data['p1_m']);
+            massSeries2.append(time, data['p2_m']);
+            p1_alt.innerHTML = data['p1_a'];
+            p2_alt.innerHTML = data['p2_a'];
+            console.log(data);
+        };
+    };
+</script>
+
+</body>
+</html>
+
