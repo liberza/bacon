@@ -12,8 +12,9 @@
 #define THRESHOLD_DIST 40
 #define MAX_SOLENOID_TIME 5000
 #define CONTROLLER_P (uint32_t)(27)
-#define CONTROLLER_D (uint32_t)(200)
-#define CONTROLLER_P_NEAR (uint32_t)(2)
+#define CONTROLLER_D (uint32_t)(170)
+#define CONTROLLER_P_NEAR (uint32_t)(3)
+//#define CONTROLLER_D_NEAR (uint32_t)(125)
 #define CONTROLLER_D_NEAR (uint32_t)(200)
 #define MAX_DESIRED_SPEED (uint32_t)(-25)
 
@@ -91,19 +92,20 @@ uint16_t control(int32_t alt, int32_t peer_alt, int32_t *prev_dists, int32_t *pr
     // if they're negative, don't
     if (dist > THRESHOLD_DIST)
     {
-        release_time = avg_dist * CONTROLLER_P + avg_delta_dist * CONTROLLER_D;
+        release_time = dist * CONTROLLER_P + avg_delta_dist * CONTROLLER_D;
     }
     // The other payload is close, and going to pass. Start compensating.
+    // We don't need to use the averages here, because the actual samples are less noisy.
     else if (dist > -THRESHOLD_DIST)
     {
-        release_time = avg_dist * CONTROLLER_P_NEAR + delta_dist * CONTROLLER_D_NEAR;
+        release_time = avg_delta_dist * CONTROLLER_D_NEAR;
     }
 
     if (release_time > MAX_SOLENOID_TIME)
         release_time = MAX_SOLENOID_TIME;
     /*
     else if (avg_delta_dist < MAX_DESIRED_SPEED)
-        // if we're getting closer, don't drop anything. 
+        // we're closing the gap fast, don't drop anything. 
         release_time = 0;
     */
     else if (release_time < 0)

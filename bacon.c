@@ -75,7 +75,7 @@ int main(void)
                 tx((uint8_t*)&MSG_TYPES.WAT_REQUEST, 1, BROADCAST, 0x00);
                 peer_timer = 0;
             }
-            else if ((sim != NO_ADDR) && (peer != NO_ADDR) && sim_timer >= PEER_INTERVAL)
+            if ((sim != NO_ADDR) && (peer != NO_ADDR) && sim_timer >= PEER_INTERVAL)
             {
                 send_sim_alt_request(sim, 0);
                 sim_timer = 0;
@@ -140,9 +140,9 @@ int main(void)
             {
                 send_payload_alt_request(peer, alt);
                 peer_timer = 0;
-                sim_timer = 450; // synchronize with the other payload
+                //sim_timer = 450; // synchronize with the other payload
             }
-            else if (sim_timer >= SIM_INTERVAL)
+            if (sim_timer >= SIM_INTERVAL)
             {
                 if (send_ballast)
                 {
@@ -169,7 +169,7 @@ int main(void)
                 }
                 else if (msg_type == MSG_TYPES.PAYLOAD_ALT)
                 {
-                    sim_timer = 500;  // synchronize with the other payload
+                    //sim_timer = 500;  // synchronize with the other payload
                     //status(STATUS4);
                     peer_alt = get_alt(frame, frame_len);
                     // Check that we rose INITIAL_RISE decimeters from our start.
