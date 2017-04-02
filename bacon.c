@@ -20,7 +20,8 @@
 #define ever ;;
 #define NO_ADDR (uint64_t)0
 
-#define RX_TIMEOUT 211
+//#define RX_TIMEOUT 211
+#define RX_TIMEOUT 400
 #define SIM_INTERVAL 223
 #define PEER_INTERVAL 223
 #define CONTROL_INTERVAL 5000
@@ -70,16 +71,6 @@ int main(void)
         // Stay in this loop until we get our first altitude.
         while (initial_alt == INT32_MIN)
         {
-            if (((sim == NO_ADDR) || peer == NO_ADDR) && peer_timer >= PEER_INTERVAL)
-            {
-                tx((uint8_t*)&MSG_TYPES.WAT_REQUEST, 1, BROADCAST, 0x00);
-                peer_timer = 0;
-            }
-            if ((sim != NO_ADDR) && (peer != NO_ADDR) && sim_timer >= PEER_INTERVAL)
-            {
-                send_sim_alt_request(sim, 0);
-                sim_timer = 0;
-            }
             // Try rx, timeout if takes longer than RX_TIMEOUT
             timer_1 = 0;
             if (!rx(frame, RX_TIMEOUT))
@@ -119,6 +110,16 @@ int main(void)
                 }
                 status_set(STATUS2);
             }
+            if (((sim == NO_ADDR) || peer == NO_ADDR) && peer_timer >= PEER_INTERVAL)
+            {
+                tx((uint8_t*)&MSG_TYPES.WAT_REQUEST, 1, BROADCAST, 0x00);
+                peer_timer = 0;
+            }
+            if ((sim != NO_ADDR) && (peer != NO_ADDR) && sim_timer >= PEER_INTERVAL)
+            {
+                send_sim_alt_request(sim, 0);
+                sim_timer = 0;
+            }
         }
 
         // This payload's initialization is complete. The other payload and simulator may 
@@ -131,31 +132,10 @@ int main(void)
         alt = initial_alt;
         send_payload_alt_request(peer, initial_alt);
         send_sim_alt_request(sim, 0);
-        timer_1 = 0;
         peer_timer = 0;
         sim_timer = 0;
         for(ever)
         {
-            if (peer_timer >= CONTROL_INTERVAL)
-            {
-                send_payload_alt_request(peer, alt);
-                peer_timer = 0;
-                //sim_timer = 450; // synchronize with the other payload
-            }
-            if (sim_timer >= SIM_INTERVAL)
-            {
-                if (send_ballast)
-                {
-                    send_sim_alt_request(sim, ballast_time);
-                    send_ballast = 0;
-                }
-                else
-                {
-                    send_sim_alt_request(sim, 0);
-                }
-
-                sim_timer = 0;
-            }
             timer_1 = 0;
             if(!rx(frame, RX_TIMEOUT))
             {
@@ -169,7 +149,7 @@ int main(void)
                 }
                 else if (msg_type == MSG_TYPES.PAYLOAD_ALT)
                 {
-                    //sim_timer = 500;  // synchronize with the other payload
+                    sim_timer = 500;  // synchronize with the other payload
                     //status(STATUS4);
                     peer_alt = get_alt(frame, frame_len);
                     // Check that we rose INITIAL_RISE decimeters from our start.
@@ -193,6 +173,26 @@ int main(void)
                     //status(STATUS7);
                 }
                 status_set(STATUS2);
+            }
+            if (peer_timer >= CONTROL_INTERVAL)
+            {
+                send_payload_alt_request(peer, alt);
+                peer_timer = 0;
+                sim_timer = 450; // synchronize with the other payload
+            }
+            if (sim_timer >= SIM_INTERVAL)
+            {
+                if (send_ballast)
+                {
+                    send_sim_alt_request(sim, ballast_time);
+                    send_ballast = 0;
+                }
+                else
+                {
+                    send_sim_alt_request(sim, 0);
+                }
+
+                sim_timer = 0;
             }
         }
     }
