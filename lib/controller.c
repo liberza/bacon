@@ -15,7 +15,7 @@
 #define CONTROLLER_D (uint32_t)(170)
 #define CONTROLLER_P_NEAR (uint32_t)(3)
 //#define CONTROLLER_D_NEAR (uint32_t)(125)
-#define CONTROLLER_D_NEAR (uint32_t)(200)
+#define CONTROLLER_D_NEAR (uint32_t)(175)
 #define MAX_DESIRED_SPEED (uint32_t)(-25)
 
 volatile uint16_t timer_1 = 0;

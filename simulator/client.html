@@ -5,7 +5,8 @@
     <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
 </head>
 <body>
-<h2>P1 Alt: <span id="p1_alt">0</span>P2 Alt: <span id="p2_alt">P2 Alt: 0</span></h2>
+<h2>P1 Alt: <span id="p1_alt">0</span></h2>
+<h2>P2 Alt: <span id="p2_alt">0</span></h2>
 <h3>Distance between payloads in meters</h3>
 <canvas id="distChart" width="1200", height="400"></canvas>
 <p>Time (H:M:S)
@@ -26,8 +27,8 @@
             horizontalLines: [{color: '#ffffff', lineWidth: 1, value: 0}],
             labels: {fontSize: 18, precision:2},
             interpolation: 'linear',
-            millisPerPixel:350,
-            grid: {verticalSections:10, borderVisible: false, millisPerLine:10000}
+            millisPerPixel:1000,
+            grid: {verticalSections:12, borderVisible: false, millisPerLine:40000}
         });
         distChart.addTimeSeries(distSeries, {lineWidth:3,strokeStyle:'#ff00ff'});
         distChart.streamTo(document.getElementById("distChart"), 500);
@@ -35,13 +36,13 @@
         var massSeries1 = new TimeSeries();
         var massSeries2 = new TimeSeries();
         var massChart = new SmoothieChart({
-            minValue: 2.5,
-            maxValue: 4.0,
+            minValue: 2.4,
+            maxValue: 3.8,
             timestampFormatter: SmoothieChart.timeFormatter,
             labels: {fontSize: 18, precision:2},
             interpolation: 'linear',
-            millisPerPixel:350,
-            grid: {verticalSections:10, borderVisible: false, millisPerLine:10000}
+            millisPerPixel:1000,
+            grid: {verticalSections:14, borderVisible: false, millisPerLine:40000}
         });
         massChart.addTimeSeries(massSeries1, {lineWidth:3,strokeStyle: '#ff0000'});
         massChart.addTimeSeries(massSeries2, {lineWidth:3,strokeStyle: '#00ff00'});
