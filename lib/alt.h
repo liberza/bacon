@@ -4,7 +4,7 @@
 #define TRUE 1
 #define FALSE 0
 
-#define P0		1013.25
+#define P0		(float)(1013.25)
 
 #define CMD_RESET		0x1E
 #define CMD_ADC_READ 	0x00
