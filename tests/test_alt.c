@@ -26,7 +26,7 @@ int main(void)
 {
 	uint16_t measure_delay = 500;
 	char buffer[BUF_LEN];
-	float altitude;
+	int32_t altitude;
 	uint32_t D1;
 	uint32_t D2;
 	uint16_t C[8];
@@ -34,8 +34,11 @@ int main(void)
     float alt_sum = 0;
 	int32_t P;
 	int32_t T;
+	int32_t T2;
 	int32_t dT;
 	int64_t OFF;
+	int64_t OFF2;
+	int64_t SENS2;
 	int64_t SENS;
 	int i;
 	serial_init(BAUD_PRESCALE, DATA_BITS_8, STOP_BITS_1, PARITY_DISABLED);
@@ -55,26 +58,41 @@ int main(void)
 	SPCR = (1 << SPE) | (1 << MSTR);
 									
 	// module should be reset upon power up.
-	//cmd_reset(); 
+	cmd_reset(); 
 												
 	for ( i = 0; i < 8; i++){
-		C[i] = cmd_prom(i);
+		C[i] = cmd_prom(i);	
 	}	
 	
 	for(ever)
 	{
-        D1 = cmd_adc(CMD_ADC_D1 + CMD_ADC_256); // read uncompensated pressure
-        D2 = cmd_adc(0x14);						// read uncompensated temperature
+        D1 = cmd_adc(CMD_ADC_D1 + CMD_ADC_4096); // read uncompensated pressure
+        D2 = cmd_adc(CMD_ADC_D2 + CMD_ADC_4096);// read uncompensated temperature
         
         // calculate 1st order pressure and temperature (datasheet)
         dT = D2 - C[5]*pow(2,8);
         OFF = C[2]*pow(2,17) + dT*C[4]/pow(2,6);
         SENS = C[1]*pow(2,16) + dT*C[3]/pow(2,7);
+		
+		T = (2000 + (dT*C[6])/pow(2,23));
 
-        T = (2000 + (dT*C[6])/pow(2,23));
+		// calculate 2nd order pressure and temperature TEMP < 20C
+		//T2 = pow(dT,2)/pow(2,31);
+		//OFF2 = 61*pow((T-2000),2)/pow(2,4);
+		//SENS2 = 2*pow((T-2000),2);
+
+		// calculate 3rd order pressure and temperature TEMP < -15C
+		//OFF2 = OFF2 + 15*pow((T+1500),2);
+		//SENS2 = SENS2 + 8*pow((T+1500),2);
+
+		//T = T - T2;
+		//OFF = OFF - OFF2;
+		//SENS = SENS - SENS2;
+
+		//P = (D1 * SENS) - OFF;
         P = (((D1*SENS)/pow(2,21) - OFF)/pow(2,15));
-        sprintf(buffer, "%ld", P);
-        tx((uint8_t*)buffer, BUF_LEN, BROADCAST, 0x00);
+        //sprintf(buffer, "%ld", P);
+        //tx((uint8_t*)buffer, BUF_LEN, BROADCAST, 0x00);
             
             /* 
              * Calculate altitude using simplified barometric equation:
@@ -84,8 +102,12 @@ int main(void)
              *
              */
 
-            altitude = (1 - pow(((float)P/(float)P0), 0.190284))*44330;
-            //alts[i] = altitude;
+            altitude = (1 - pow(((P)/P0), (1/5.255)))*44330;
+			//altitude = (1 - pow((P/P0), (1/5.255)))*T/0.0065;
+
+            sprintf(buffer, "%ld", P);
+			tx((uint8_t*)buffer, BUF_LEN, BROADCAST, 0x00);
+			//alts[i] = altitude;
         //}
         //for (i = 0; i < ALT_SAMPLES; i++) {
         //    alt_sum += alts[i];
