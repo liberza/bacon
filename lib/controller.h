@@ -1,7 +1,7 @@
 #ifndef TIMER_H
 #define TIMER_H
 
-#define PREV_DISTS 3
+#define PREV_DISTS 6
 
 volatile uint16_t timer_1;  // 1ms resolution timer
 volatile uint16_t timer_2;  // used for controlling solenoid time and green LED blinking

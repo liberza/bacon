@@ -17,7 +17,7 @@ import bmp
 MASS1 = 3.5
 MASS2 = 3.7
 #BALLAST = 0.581 # half liter bottle capacity, minus 10ml
-BALLAST = 0.950 # 1L bottle capacity, minus 50ml
+BALLAST = 1.2 # 2L bottle filled halfway with 0.8kg/L isopropyl alcohol
 PROFILE = "profiles/umhab52.json"
 
 # Let's simulate some balloons.

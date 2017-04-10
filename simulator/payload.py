@@ -76,7 +76,7 @@ class Payload():
         # we give it random +-10% error, because the payload is getting
         # blasted by high winds and the ballast is sloshing around.
         noise = random.uniform(0.9, 1.1)
-        new_mass = self.mass - (noise*ballast_time_ms*0.004925/1000)
+        new_mass = self.mass - (noise*ballast_time_ms*0.004925/1000)*0.8
         if (new_mass > self.initial_mass - self.initial_ballast):
             self.mass = new_mass
         else:

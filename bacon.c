@@ -26,6 +26,9 @@
 #define PEER_INTERVAL 223
 #define CONTROL_INTERVAL 5000
 
+#define SIM_MODE 1
+#define FLIGHT_MODE 2
+
 #define INITIAL_RISE 1750
 
 int main(void)
@@ -40,6 +43,7 @@ int main(void)
     uint8_t msg_type;
     uint16_t ballast_time = 0;
     uint8_t send_ballast = 0;
+    uint8_t mode = SIM_MODE;
 
     // Initialize altitudes.
     int32_t initial_alt = INT32_MIN;
@@ -180,7 +184,7 @@ int main(void)
                 peer_timer = 0;
                 sim_timer = 450; // synchronize with the other payload
             }
-            if (sim_timer >= SIM_INTERVAL)
+            if ((sim_timer >= SIM_INTERVAL) && (mode == SIM_MODE))
             {
                 if (send_ballast)
                 {
