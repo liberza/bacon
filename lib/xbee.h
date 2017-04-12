@@ -21,7 +21,7 @@
 #define FRAME_RX_INCOMPLETE (uint8_t)(0x08)
 
 #define BROADCAST (uint64_t)(0x000000000000FFFF)
-#define MAX_FRAME_SIZE (uint16_t)(MAX_BUF_SIZE - 1)
+#define MAX_FRAME_SIZE (uint8_t)(MAX_BUF_SIZE - 1)
 
 //! Buffer for serial RX interrupt service routne.
 volatile extern rbuf_t rbuf;
@@ -57,7 +57,7 @@ struct frame_types_t
 
 struct frame_t
 {
-    uint16_t len;
+    uint8_t len;
     uint8_t data[MAX_BUF_SIZE];
 };
 
@@ -71,12 +71,12 @@ void xbee_init();
 uint8_t rx(uint8_t *frame, uint16_t timeout);
 
 //! Transmit a Digimesh frame.
-uint8_t tx(uint8_t *data, uint16_t data_len, uint64_t dest, uint8_t opts);
+uint8_t tx(uint8_t *data, uint8_t data_len, uint64_t dest, uint8_t opts);
 
 //! Remove ESCAPE bytes and XOR special chars with 0x20.
-uint16_t unescape(uint8_t *frame, uint16_t size);
+uint8_t unescape(uint8_t *frame, uint8_t size);
 
-uint8_t validate_frame(uint8_t *frame, uint16_t size);
+uint8_t validate_frame(uint8_t *frame, uint8_t size);
 
 uint8_t find_frame(volatile rbuf_t *r, uint8_t *frame);
 
@@ -88,7 +88,7 @@ uint64_t get_source_addr(uint8_t *frame);
 
 uint8_t get_frame_type(uint8_t *frame);
 
-uint16_t get_frame_len(uint8_t *frame);
+uint8_t get_frame_len(uint8_t *frame);
 
 //! ISR for writing bytes and swapping buffers when frame delimiter received.
 ISR(USART_RX_vect);

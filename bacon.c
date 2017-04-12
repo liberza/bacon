@@ -22,8 +22,10 @@
 
 //#define RX_TIMEOUT 211
 #define RX_TIMEOUT 400
+//#define SIM_INTERVAL 223
+//#define PEER_INTERVAL 223
 #define SIM_INTERVAL 223
-#define PEER_INTERVAL 223
+#define PEER_INTERVAL 1000
 #define CONTROL_INTERVAL 5000
 
 #define SIM_MODE 1
@@ -38,7 +40,7 @@ int main(void)
     uint64_t sim = NO_ADDR;
 
     uint8_t wat_type;
-    uint16_t frame_len;
+    uint8_t frame_len;
     uint8_t frame[MAX_BUF_SIZE];
     uint8_t msg_type;
     uint16_t ballast_time = 0;
@@ -109,8 +111,8 @@ int main(void)
                 else
                 {
                     // Got an unknown message. Hold off on transmitting and read more.
-                    peer_timer = 0;
-                    sim_timer = 0;
+                    //peer_timer = 0;
+                    //sim_timer = 0;
                 }
                 status_set(STATUS2);
             }

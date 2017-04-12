@@ -3,16 +3,42 @@
 <head>
     <title>TONGS graph</title>
     <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+    <style>
+        body {
+            background-color: black;
+            color: white;
+        }
+        .xaxis {
+            text-align: center;
+        }
+        .yaxis {
+            text-align: right;
+        }
+        h2 {
+            margin: 0;
+        }
+        canvas {
+            display: block;
+        }
+        .chart {
+            width: auto;
+            display: inline-block;
+        }
+    </style>
 </head>
 <body>
 <h2>P1 Alt: <span id="p1_alt">0</span></h2>
 <h2>P2 Alt: <span id="p2_alt">0</span></h2>
+<div class="chart">
 <h3>Distance between payloads in meters</h3>
-<canvas id="distChart" width="1200", height="400"></canvas>
-<p>Time (H:M:S)
+<canvas id="distChart" width="1000", height="230"></canvas>
+<div class="xaxis">Time (H:M:S)</div>
+</div>
+<div class="chart">
 <h3>Mass of payloads in kg</h3>
-<canvas id="massChart" width="1200", height="400"></canvas>
-<p>Time (H:M:S)
+<canvas id="massChart" width="1000", height="230"></canvas>
+<div class="xaxis">Time (H:M:S)</div>
+</div>
 
 <script type="text/javascript" src="smoothie.js"></script>
 <script>
@@ -25,10 +51,10 @@
             minValue: -30,
             timestampFormatter: SmoothieChart.timeFormatter,
             horizontalLines: [{color: '#ffffff', lineWidth: 1, value: 0}],
-            labels: {fontSize: 18, precision:2},
+            labels: {fontSize: 20, precision:1},
             interpolation: 'linear',
-            millisPerPixel:1000,
-            grid: {verticalSections:12, borderVisible: false, millisPerLine:40000}
+            millisPerPixel:3600,
+            grid: {verticalSections:12, borderVisible: false, millisPerLine:100000}
         });
         distChart.addTimeSeries(distSeries, {lineWidth:3,strokeStyle:'#ff00ff'});
         distChart.streamTo(document.getElementById("distChart"), 500);
@@ -36,13 +62,13 @@
         var massSeries1 = new TimeSeries();
         var massSeries2 = new TimeSeries();
         var massChart = new SmoothieChart({
-            minValue: 2.4,
+            minValue: 2.2,
             maxValue: 3.8,
             timestampFormatter: SmoothieChart.timeFormatter,
-            labels: {fontSize: 18, precision:2},
+            labels: {fontSize: 20, precision:1},
             interpolation: 'linear',
-            millisPerPixel:1000,
-            grid: {verticalSections:14, borderVisible: false, millisPerLine:40000}
+            millisPerPixel:3600,
+            grid: {verticalSections:8, borderVisible: false, millisPerLine:100000}
         });
         massChart.addTimeSeries(massSeries1, {lineWidth:3,strokeStyle: '#ff0000'});
         massChart.addTimeSeries(massSeries2, {lineWidth:3,strokeStyle: '#00ff00'});

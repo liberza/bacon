@@ -56,7 +56,7 @@ void xbee_init()
 }
 
 // Transmit data of length data_len to destination address dest.
-uint8_t tx(uint8_t *data, uint16_t data_len, uint64_t dest, uint8_t opts)
+uint8_t tx(uint8_t *data, uint8_t data_len, uint64_t dest, uint8_t opts)
 {
     status_clear(STATUS1);
     uint8_t frame[MAX_FRAME_SIZE];
@@ -66,7 +66,7 @@ uint8_t tx(uint8_t *data, uint16_t data_len, uint64_t dest, uint8_t opts)
     // does not include delimiter or length or checksum
     data_len += 14;
     // add delimiter and length and checksum
-    uint16_t frame_len = data_len + 4;
+    uint8_t frame_len = data_len + 4;
     uint8_t sum = 0;
 
     if (frame_len > MAX_FRAME_SIZE)
@@ -156,9 +156,9 @@ uint8_t rx(uint8_t *frame, uint16_t timeout)
 //! while this function is executing.
 uint8_t find_frame(volatile rbuf_t *r, uint8_t *frame)
 {
-    uint16_t buf_len;
+    uint8_t buf_len;
     uint8_t ret;
-    uint16_t num_unescaped;
+    uint8_t num_unescaped;
     // Check that the first byte is a frame delimiter.
     // If not, shift out bytes until we hit one.
     buf_len = rbuf_len(r);
@@ -194,14 +194,14 @@ uint8_t find_frame(volatile rbuf_t *r, uint8_t *frame)
 }
 
 //! Check the checksum. 
-uint8_t validate_frame(uint8_t *frame, uint16_t buf_len)
+uint8_t validate_frame(uint8_t *frame, uint8_t buf_len)
 {
     uint8_t ret = 0;
     uint8_t sum = 0;
-    uint16_t data_len, frame_len;
+    uint8_t data_len, frame_len;
 
     // check that we have at least frame_len # of bytes in the buffer.
-    data_len = ((uint16_t)frame[1] << 8) | (uint16_t)frame[2];
+    data_len = ((uint8_t)frame[1] << 8) | (uint8_t)frame[2];
     frame_len = data_len + 4;
     if (frame_len > buf_len)
     {
@@ -240,9 +240,9 @@ uint8_t validate_frame(uint8_t *frame, uint16_t buf_len)
 // everything out if one was not found.
 uint8_t shift_to_delim(volatile rbuf_t *r)
 {
-    uint16_t i;
+    uint8_t i;
     uint8_t found = 0;
-    uint16_t buf_len = rbuf_len(r);
+    uint8_t buf_len = rbuf_len(r);
 
     if (rbuf_read(r, 0) != SPECIAL_BYTES.FRAME_DELIM)
     {
@@ -268,9 +268,9 @@ uint8_t shift_to_delim(volatile rbuf_t *r)
 // no matter what.
 uint8_t shift_frame_out(volatile rbuf_t *r)
 {
-    uint16_t i;
+    uint8_t i;
     uint8_t found = 0;
-    uint16_t buf_len = rbuf_len(r);
+    uint8_t buf_len = rbuf_len(r);
 
     // Find the next frame delimiter.
     for (i=1; i<buf_len; i++)
@@ -289,10 +289,10 @@ uint8_t shift_frame_out(volatile rbuf_t *r)
 //! Loops through the frame, unescaping any escaped bytes.
 //! Could be done in find_frame and save a loop, but let's see if
 //! that's necessary before premature optimization...
-uint16_t unescape(uint8_t *frame, uint16_t frame_len)
+uint8_t unescape(uint8_t *frame, uint8_t frame_len)
 {
-    uint16_t i;
-    uint16_t j = 0;
+    uint8_t i;
+    uint8_t j = 0;
     // stop if we reach the end of the array. 
     /* while (i + j < frame_len) */
     for (i=1; i + j < frame_len; i++)
@@ -336,9 +336,9 @@ uint8_t get_frame_type(uint8_t *frame)
     return frame[3];
 }
 
-uint16_t get_frame_len(uint8_t *frame)
+uint8_t get_frame_len(uint8_t *frame)
 {
-    return (((uint16_t)frame[1]<<8) | (uint16_t)frame[2]) + 4;
+    return (((uint8_t)frame[1]<<8) | (uint8_t)frame[2]) + 4;
 }
 
 
