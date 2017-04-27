@@ -98,13 +98,12 @@ void alt_init()
 
 int32_t get_alt()
 {
-	uint16_t measure_delay = 500;
 	int32_t altitude;
 	uint32_t D1;
 	uint32_t D2;
 	uint16_t C[8];
 	int32_t P;
-	int32_t T;
+	//int32_t T;
 	int32_t dT;
 	int64_t OFF;
 	int64_t SENS;
@@ -123,13 +122,11 @@ int32_t get_alt()
 	OFF = C[2]*pow(2,17) + dT*C[4]/pow(2,6);
 	SENS = C[1]*pow(2,16) + dT*C[3]/pow(2,7);
 	
-	T = (2000 + (dT*C[6])/pow(2,23));
+	//T = (2000 + (dT*C[6])/pow(2,23));
 	
 	P = (((D1*SENS)/pow(2,21) - OFF)/pow(2,15));
 			
 	altitude = -443307.7*(pow((long double)P/101325,0.190252)-1);
 								
-	_delay_ms(measure_delay);				 	
-
 	return altitude;
 }

@@ -9,6 +9,7 @@
 #include "lib/status.h"
 #include "lib/controller.h"
 #include "lib/bmp.h"
+#include "lib/alt.h"
 
 #include <stdio.h>
 #include <string.h>

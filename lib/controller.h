@@ -14,6 +14,10 @@ volatile uint16_t solenoid_on_time; // time duration in ms for solenoid to be ac
 volatile uint8_t solenoid_on;       // bool for whether or not the solenoid is currently on.
 volatile uint8_t currently_peering; // bool for whether or not the payload is peering.
 
+void flight_mode_init();
+
+uint8_t get_flight_mode();
+
 void tim_init();
 
 void solenoid_init();
