@@ -52,4 +52,10 @@ uint16_t cmd_prom(
 	int coef_num
 	);
 
+// Initialize altimeter
+void alt_init();
+
+// Returns alt in decimeters
+int32_t get_alt();
+
 #endif

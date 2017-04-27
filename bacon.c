@@ -28,9 +28,6 @@
 #define PEER_INTERVAL 1000
 #define CONTROL_INTERVAL 5000
 
-#define SIM_MODE 1
-#define FLIGHT_MODE 2
-
 #define INITIAL_RISE 1750
 
 int main(void)
@@ -56,6 +53,7 @@ int main(void)
     int32_t prev_delta_dists[PREV_DISTS];
 
     status_pin_init();
+    mode_pin_init();
     status_set(STATUS0 | STATUS1 | STATUS2);
     tim_init();
     solenoid_init();
