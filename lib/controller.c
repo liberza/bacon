@@ -48,7 +48,7 @@ void solenoid_init()
 
 // Set mode pin as an input.
 // High = flight, low = sim
-void mode_pin_init()
+void flight_mode_init()
 {
     PORTB &= ~(1 << PB0);
     DDRB &= (1 << PB0);

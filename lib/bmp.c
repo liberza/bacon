@@ -90,7 +90,7 @@ void send_payload_alt_request(uint64_t dest, uint32_t alt)
     tx(msg, 12, dest, 0x00);
 }
 
-int32_t get_alt(uint8_t *frame, uint16_t frame_len)
+int32_t parse_alt(uint8_t *frame, uint16_t frame_len)
 {
     uint8_t tmp_checksum;
     int32_t alt = INT32_MIN;
