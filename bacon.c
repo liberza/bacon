@@ -181,10 +181,6 @@ int main(void)
                 {
                     send_wat_reply(get_source_addr(frame));
                 }
-                else
-                {
-                    //status(STATUS7);
-                }
                 status_set(STATUS2);
             }
             if (peer_timer >= CONTROL_INTERVAL)
@@ -193,7 +189,7 @@ int main(void)
                 peer_timer = 0;
                 sim_timer = 450; // synchronize with the other payload
             }
-            if ((sim_timer >= SIM_INTERVAL) && (mode == SIM_MODE))
+            if ((mode == SIM_MODE) && (sim_timer >= SIM_INTERVAL))
             {
                 if (send_ballast)
                 {
