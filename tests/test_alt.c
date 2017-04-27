@@ -91,31 +91,12 @@ int main(void)
 
 		//P = (D1 * SENS) - OFF;
         P = (((D1*SENS)/pow(2,21) - OFF)/pow(2,15));
-        //sprintf(buffer, "%ld", P);
-        //tx((uint8_t*)buffer, BUF_LEN, BROADCAST, 0x00);
-            
-            /* 
-             * Calculate altitude using simplified barometric equation:
-             *
-             * 					  /         1/5.255\
-             * altitude = 44330 * \1 - (p/p0)      /
-             *
-             */
+        
+		altitude = -443307.7*(pow((long double)P/101325,0.190252)-1);
+		
 
-            altitude = (1 - pow(((P)/P0), (1/5.255)))*44330;
-			//altitude = (1 - pow((P/P0), (1/5.255)))*T/0.0065;
-
-            sprintf(buffer, "%ld", P);
-			tx((uint8_t*)buffer, BUF_LEN, BROADCAST, 0x00);
-			//alts[i] = altitude;
-        //}
-        //for (i = 0; i < ALT_SAMPLES; i++) {
-        //    alt_sum += alts[i];
-        //}
-        //alt_sum /= ALT_SAMPLES;
-
-        //dtostrf(altitude, 4, 2, buffer);
-        //tx((uint8_t*)buffer, BUF_LEN, BROADCAST, 0x00);
+        sprintf(buffer, "%ld", altitude);
+		tx((uint8_t*)buffer, BUF_LEN, BROADCAST, 0x00);
 
 		_delay_ms(measure_delay);
 		wipe(buffer, BUF_LEN);
