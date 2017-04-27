@@ -76,20 +76,6 @@ int main(void)
 		
 		T = (2000 + (dT*C[6])/pow(2,23));
 
-		// calculate 2nd order pressure and temperature TEMP < 20C
-		//T2 = pow(dT,2)/pow(2,31);
-		//OFF2 = 61*pow((T-2000),2)/pow(2,4);
-		//SENS2 = 2*pow((T-2000),2);
-
-		// calculate 3rd order pressure and temperature TEMP < -15C
-		//OFF2 = OFF2 + 15*pow((T+1500),2);
-		//SENS2 = SENS2 + 8*pow((T+1500),2);
-
-		//T = T - T2;
-		//OFF = OFF - OFF2;
-		//SENS = SENS - SENS2;
-
-		//P = (D1 * SENS) - OFF;
         P = (((D1*SENS)/pow(2,21) - OFF)/pow(2,15));
         
 		altitude = -443307.7*(pow((long double)P/101325,0.190252)-1);
