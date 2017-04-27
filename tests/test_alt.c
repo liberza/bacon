@@ -24,67 +24,22 @@ void wipe(char *buffer, uint16_t len);
 
 int main(void)
 {
-	uint16_t measure_delay = 500;
 	char buffer[BUF_LEN];
 	int32_t altitude;
-	uint32_t D1;
-	uint32_t D2;
-	uint16_t C[8];
-    float alts[ALT_SAMPLES];
-    float alt_sum = 0;
-	int32_t P;
-	int32_t T;
-	int32_t T2;
-	int32_t dT;
-	int64_t OFF;
-	int64_t OFF2;
-	int64_t SENS2;
-	int64_t SENS;
-	int i;
 	serial_init(BAUD_PRESCALE, DATA_BITS_8, STOP_BITS_1, PARITY_DISABLED);
     xbee_init();
 	sei();
 
-	for (i = 0; i < 8; i++){ C[i] = 0;}
-    for (i = 0; i < ALT_SAMPLES; i++) { alts[i] = 0.0; }
 	wipe(buffer, BUF_LEN);
-	// SS, MOSI, and SCK as outputs
-	DDRB |= (1 << PB3) | (1 << PB5) | (1 << PB2);
-		
-	// MISO as input
-	DDRB &= ~(1 << PB4);
-						
-	// SPI settings: master, mode 0, f/4
-	SPCR = (1 << SPE) | (1 << MSTR);
-									
-	// module should be reset upon power up.
-	cmd_reset(); 
-												
-	for ( i = 0; i < 8; i++){
-		C[i] = cmd_prom(i);	
-	}	
-	
+
+	alt_init();
 	for(ever)
 	{
-        D1 = cmd_adc(CMD_ADC_D1 + CMD_ADC_4096); // read uncompensated pressure
-        D2 = cmd_adc(CMD_ADC_D2 + CMD_ADC_4096);// read uncompensated temperature
-        
-        // calculate 1st order pressure and temperature (datasheet)
-        dT = D2 - C[5]*pow(2,8);
-        OFF = C[2]*pow(2,17) + dT*C[4]/pow(2,6);
-        SENS = C[1]*pow(2,16) + dT*C[3]/pow(2,7);
-		
-		T = (2000 + (dT*C[6])/pow(2,23));
-
-        P = (((D1*SENS)/pow(2,21) - OFF)/pow(2,15));
-        
-		altitude = -443307.7*(pow((long double)P/101325,0.190252)-1);
-		
+		altitude = get_alt();
 
         sprintf(buffer, "%ld", altitude);
 		tx((uint8_t*)buffer, BUF_LEN, BROADCAST, 0x00);
 
-		_delay_ms(measure_delay);
 		wipe(buffer, BUF_LEN);
 	}
 }
