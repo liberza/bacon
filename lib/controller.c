@@ -46,6 +46,23 @@ void solenoid_init()
     DDRB |= (1 << PB1);
 }
 
+// Set mode pin as an input.
+// High = flight, low = sim
+void mode_pin_init()
+{
+    PORTB &= ~(1 << PB0);
+    DDRB &= (1 << PB0);
+}
+
+// Returns the flight mode, based on the mode switch.
+uint8_t get_flight_mode()
+{
+    if (PINB & (1 << PB0))
+        return SIM_MODE;
+    else
+        return FLIGHT_MODE;
+}
+
 // Activate solenoid for on_time ms
 void activate_solenoid(uint16_t on_time)
 {

@@ -2,6 +2,9 @@
 #define TIMER_H
 
 #define PREV_DISTS 6
+#define SIM_MODE (uint8_t)1
+#define FLIGHT_MODE (uint8_t)2
+
 
 volatile uint16_t timer_1;  // 1ms resolution timer
 volatile uint16_t timer_2;  // used for controlling solenoid time and green LED blinking
