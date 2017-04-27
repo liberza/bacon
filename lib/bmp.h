@@ -29,7 +29,7 @@ void send_sim_alt_request(uint64_t dest, uint16_t time);
 
 void send_payload_alt_request(uint64_t dest, uint32_t alt);
 
-int32_t get_alt(uint8_t *frame, uint16_t frame_len);
+int32_t parse_alt(uint8_t *frame, uint16_t frame_len);
 
 void send_alt(uint64_t dest, int32_t alt);
 

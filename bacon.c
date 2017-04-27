@@ -42,18 +42,17 @@ int main(void)
     uint8_t msg_type;
     uint16_t ballast_time = 0;
     uint8_t send_ballast = 0;
-    uint8_t mode = SIM_MODE;
 
     // Initialize altitudes.
     int32_t initial_alt = INT32_MIN;
     int32_t alt = INT32_MIN;
     int32_t peer_alt = INT32_MIN;
-    //int32_t prev_dist = 0;
     int32_t prev_dists[PREV_DISTS];
     int32_t prev_delta_dists[PREV_DISTS];
 
+    // Perform various initializations
     status_pin_init();
-    mode_pin_init();
+    flight_mode_init();
     status_set(STATUS0 | STATUS1 | STATUS2);
     tim_init();
     solenoid_init();
@@ -61,6 +60,9 @@ int main(void)
     xbee_init();
     sei();
     wdt_enable(WDTO_1S);
+
+    // Check for simulation mode or flight mode
+    uint8_t mode = get_flight_mode();
 
     // Send a WAT request right when booting up.
     tx((uint8_t*)&MSG_TYPES.WAT_REQUEST, 1, BROADCAST, 0x00);
@@ -86,7 +88,7 @@ int main(void)
                 {
                     uint64_t src = get_source_addr(frame);
                     send_wat_reply(src);
-                    if ((peer != NO_ADDR) && src != peer)
+                    if ((mode == SIM_MODE) && (peer != NO_ADDR) && (src != peer))
                     {   // Send peer's address to show we peered successfully
                         if (sim == NO_ADDR)
                             sim = src;
@@ -102,24 +104,28 @@ int main(void)
                         sim = get_source_addr(frame);
                     // ignore else
                 }
-                else if (msg_type == MSG_TYPES.SIM_ALT)
+                else if ((mode == SIM_MODE) && (msg_type == MSG_TYPES.SIM_ALT) && (peer != NO_ADDR))
                 {
-                    initial_alt = get_alt(frame, frame_len);
+                    // first altitude comes from simulator, once we konw the peer.
+                    initial_alt = parse_alt(frame, frame_len);
                 }
-                else
+                else if ((mode == FLIGHT_MODE) && (peer != NO_ADDR))
                 {
-                    // Got an unknown message. Hold off on transmitting and read more.
-                    //peer_timer = 0;
-                    //sim_timer = 0;
+                    // first altitude comes from ourself, once we know the peer.
+                    initial_alt = get_alt();
                 }
                 status_set(STATUS2);
             }
-            if (((sim == NO_ADDR) || peer == NO_ADDR) && peer_timer >= PEER_INTERVAL)
+            if (((sim == NO_ADDR) || peer == NO_ADDR) && 
+                (peer_timer >= PEER_INTERVAL))
             {
                 tx((uint8_t*)&MSG_TYPES.WAT_REQUEST, 1, BROADCAST, 0x00);
                 peer_timer = 0;
             }
-            if ((sim != NO_ADDR) && (peer != NO_ADDR) && sim_timer >= PEER_INTERVAL)
+            if ((mode == SIM_MODE) && 
+                (sim != NO_ADDR) && 
+                (peer != NO_ADDR) && 
+                (sim_timer >= PEER_INTERVAL))
             {
                 send_sim_alt_request(sim, 0);
                 sim_timer = 0;
@@ -135,7 +141,8 @@ int main(void)
         status_clear(STATUS0);
         alt = initial_alt;
         send_payload_alt_request(peer, initial_alt);
-        send_sim_alt_request(sim, 0);
+        if (mode == SIM_MODE)
+            send_sim_alt_request(sim, 0);
         peer_timer = 0;
         sim_timer = 0;
         for(ever)
@@ -146,16 +153,18 @@ int main(void)
                 status_clear(STATUS2);
                 frame_len = get_frame_len(frame);
                 msg_type = get_msg_type(frame, frame_len);
-                if (msg_type == MSG_TYPES.SIM_ALT)
+                if ((mode == SIM_MODE) && (msg_type == MSG_TYPES.SIM_ALT))
                 {
                     //status(STATUS3);
-                    alt = get_alt(frame, frame_len);
+                    alt = parse_alt(frame, frame_len);
                 }
                 else if (msg_type == MSG_TYPES.PAYLOAD_ALT)
                 {
-                    sim_timer = 500;  // synchronize with the other payload
-                    //status(STATUS4);
-                    peer_alt = get_alt(frame, frame_len);
+                    if (mode == SIM_MODE)
+                        sim_timer = 500;  // synchronize with the other payload
+                    else
+                        alt = get_alt();
+                    peer_alt = parse_alt(frame, frame_len);
                     // Check that we rose INITIAL_RISE decimeters from our start.
                     if (alt - initial_alt > INITIAL_RISE)
                     {
