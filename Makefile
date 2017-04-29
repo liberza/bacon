@@ -18,16 +18,19 @@ AVRDUDE = avrdude
 MAIN = bacon
 TEST_SOLENOID = test_solenoid
 TEST_ALT = test_alt
+TEST_MODE = test_mode
 
 # Sources
 LIB_SOURCES=$(wildcard lib/*.c)
 SOLENOID_SOURCES=$(wildcard tests/test_solenoid.c lib/*.c)
 ALT_SOURCES=$(wildcard tests/test_alt.c lib/*.c)
+MODE_SOURCES=$(wildcard tests/test_mode.c lib/*.c)
 MAIN_SOURCES=$(wildcard bacon.c lib/*.c)
 
 # Object files: will find all .c/.h files in *_SOURCES
 SOLENOID_OBJECTS=$(SOLENOID_SOURCES:.c=.o)
 ALT_OBJECTS=$(ALT_SOURCES:.c=.o)
+MODE_OBJECTS=$(MODE_SOURCES:.c=.o)
 MAIN_OBJECTS=$(MAIN_SOURCES:.c=.o)
 
 # Headers: only in LIB_SOURCES
@@ -57,6 +60,9 @@ $(TEST_SOLENOID).elf: $(SOLENOID_OBJECTS)
 $(TEST_ALT).elf: $(ALT_OBJECTS)
 	$(CC) $(LDFLAGS) $(TARGET_ARCH) $^ $(LDLIBS) -o $@
 
+$(TEST_MODE).elf: $(MODE_OBJECTS)
+	$(CC) $(LDFLAGS) $(TARGET_ARCH) $^ $(LDLIBS) -o $@
+
 %.hex: %.elf
 	 $(OBJCOPY) -j .text -j .data -O ihex $< $@
 
@@ -67,13 +73,15 @@ $(TEST_ALT).elf: $(ALT_OBJECTS)
 	$(OBJDUMP) -S $< > $@
 
 .PHONY: all disassemble size clean flash fuses alt solenoid flash_alt \
-		flash_solenoid bacon
+		flash_solenoid flash_mode bacon
 
 bacon: $(MAIN).hex
 
 solenoid: $(TEST_SOLENOID).hex
 
 alt: $(TEST_ALT).hex
+
+mode: $(TEST_MODE).hex
 
 all: bacon
 
@@ -106,6 +114,10 @@ flash_solenoid: $(TEST_SOLENOID).hex
 	$(AVRDUDE) -c $(PROGRAMMER_TYPE) -p $(MCU) $(PROGRAMMER_ARGS) -U flash:w:$<
 
 flash_alt: $(TEST_ALT).hex
+	./rst.py
+	$(AVRDUDE) -c $(PROGRAMMER_TYPE) -p $(MCU) $(PROGRAMMER_ARGS) -U flash:w:$<
+
+flash_mode: $(TEST_MODE).hex
 	./rst.py
 	$(AVRDUDE) -c $(PROGRAMMER_TYPE) -p $(MCU) $(PROGRAMMER_ARGS) -U flash:w:$<
 

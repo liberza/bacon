@@ -54,6 +54,7 @@ int main(void)
     // Perform various initializations
     status_pin_init();
     flight_mode_init();
+    alt_init();
     status_set(STATUS0 | STATUS1 | STATUS2);
     tim_init();
     solenoid_init();
@@ -87,6 +88,7 @@ int main(void)
                 msg_type = get_msg_type(frame, frame_len);
                 if (msg_type == MSG_TYPES.WAT_REQUEST)
                 {
+                    status_set(STATUS3);
                     uint64_t src = get_source_addr(frame);
                     send_wat_reply(src);
                     if ((mode == SIM_MODE) && (peer != NO_ADDR) && (src != peer))
@@ -95,29 +97,38 @@ int main(void)
                             sim = src;
                         send_peer_addr(peer, sim);
                     }
+                    status_clear(STATUS3);
                 }
                 else if (msg_type == MSG_TYPES.WAT_REPLY)
                 {
+                    status_set(STATUS4);
                     wat_type = get_wat_type(frame, frame_len);
                     if (wat_type == 'P')
                         peer = get_source_addr(frame);
                     else if (wat_type == 'S')
                         sim = get_source_addr(frame);
                     // ignore else
+                    status_clear(STATUS4);
                 }
                 else if ((mode == SIM_MODE) && (msg_type == MSG_TYPES.SIM_ALT) && (peer != NO_ADDR))
                 {
+                    status_set(STATUS5);
                     // first altitude comes from simulator, once we konw the peer.
                     initial_alt = parse_alt(frame, frame_len);
-                }
-                else if ((mode == FLIGHT_MODE) && (peer != NO_ADDR))
-                {
-                    // first altitude comes from ourself, once we know the peer.
-                    initial_alt = get_alt();
+                    status_clear(STATUS5);
                 }
                 status_set(STATUS2);
             }
-            if (((sim == NO_ADDR) || peer == NO_ADDR) && 
+            if ((mode == FLIGHT_MODE) && (peer != NO_ADDR))
+            {
+                status_set(STATUS6);
+                // first altitude comes from ourself, once we know the peer.
+                initial_alt = get_alt();
+
+                status_clear(STATUS6);
+            }
+
+            if ((((mode == SIM_MODE) && (sim == NO_ADDR)) || (peer == NO_ADDR)) && 
                 (peer_timer >= PEER_INTERVAL))
             {
                 tx((uint8_t*)&MSG_TYPES.WAT_REQUEST, 1, BROADCAST, 0x00);
@@ -173,6 +184,7 @@ int main(void)
                         ballast_time = control(alt, peer_alt, prev_dists, prev_delta_dists);
                         activate_solenoid(ballast_time);
                     }
+                    // need an else so that we can do averaging at the beginning.
                 }
                 else if (msg_type == MSG_TYPES.PAYLOAD_ALT_REQUEST)
                 {

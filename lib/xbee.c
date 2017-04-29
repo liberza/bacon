@@ -111,7 +111,6 @@ uint8_t tx(uint8_t *data, uint8_t data_len, uint64_t dest, uint8_t opts)
     put_byte(frame[0]);
     for (int i=1; i < frame_len; i++)
     {
-        status_set(STATUS5);
         if (frame[i] == SPECIAL_BYTES.FRAME_DELIM ||
             frame[i] == SPECIAL_BYTES.ESCAPE      ||
             frame[i] == SPECIAL_BYTES.XON         ||
@@ -124,7 +123,6 @@ uint8_t tx(uint8_t *data, uint8_t data_len, uint64_t dest, uint8_t opts)
         {
             put_byte(frame[i]);
         }
-        status_clear(STATUS5);
     }
             
     status_set(STATUS1);
@@ -145,7 +143,6 @@ uint8_t rx(uint8_t *frame, uint16_t timeout)
         ret = find_frame(&rbuf, frame);
     }
     while ((ret != 0) && (timeout > timer_1));
-    /* status_set(STATUS2); */
     return ret;
 }
 

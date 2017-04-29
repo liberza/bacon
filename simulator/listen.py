@@ -13,6 +13,6 @@ if __name__ == "__main__":
         while (msg==None):
             msg = xb.rx()
         if msg[2] == 0x90:
-            print(msg[14:-1].decode())
-        else:
-            print(msg[2])
+            string = msg[14:-1].decode()
+            if string != 'W':
+                print(string)

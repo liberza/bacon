@@ -14,10 +14,10 @@ from liveplot import LivePlot
 import bmp
 
 # make this commandline args at some point. for now, this is completely fine.
-MASS1 = 3.5
-MASS2 = 3.7
+MASS1 = 3.4
+MASS2 = 3.3
 #BALLAST = 0.581 # half liter bottle capacity, minus 10ml
-BALLAST = 1.2 # 2L bottle filled halfway with 0.8kg/L isopropyl alcohol
+BALLAST = 0.8 # 2L bottle filled halfway with 0.8kg/L isopropyl alcohol
 PROFILE = "profiles/umhab52.json"
 
 # Let's simulate some balloons.
