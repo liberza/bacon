@@ -10,13 +10,14 @@
 
 #define PEERING_LED_DELAY 500
 #define THRESHOLD_DIST 40
+#define INNER_THRESHOLD_DIST 10
 #define MAX_SOLENOID_TIME 5000
 #define CONTROLLER_P (uint32_t)(27)
 #define CONTROLLER_D (uint32_t)(170)
 #define CONTROLLER_P_NEAR (uint32_t)(3)
 //#define CONTROLLER_D_NEAR (uint32_t)(125)
 //#define CONTROLLER_D_NEAR (uint32_t)(175)
-#define CONTROLLER_D_NEAR (uint32_t)(150)
+#define CONTROLLER_D_NEAR (uint32_t)(130)
 #define MAX_DESIRED_SPEED (uint32_t)(-25)
 
 volatile uint16_t timer_1 = 0;
@@ -78,44 +79,68 @@ void deactivate_solenoid()
     PORTB &= ~(1 << PB1);
 }
 
-// Determine how long to turn the solenoid on for.
-uint16_t control(int32_t alt, int32_t peer_alt, int32_t *prev_dists, int32_t *prev_delta_dists)
+void do_averaging(int32_t alt, int32_t peer_alt, int32_t *prev_dists, int32_t *prev_dists_avg)
 {
-    int32_t release_time = 0;
-    int32_t dist, delta_dist;
+    int32_t dist = peer_alt - alt;
     int32_t avg_dist = 0;
-    int32_t avg_delta_dist = 0;
-
-    dist = peer_alt - alt;
-    delta_dist = dist - prev_dists[PREV_DISTS-1];
-
-    // Average the previous distances and slide the window over simultaneously.
     for (int i=0; i<PREV_DISTS; i++) {
         avg_dist += prev_dists[i];
-        avg_delta_dist += prev_delta_dists[i];
         if (i != PREV_DISTS-1) {
             prev_dists[i] = prev_dists[i+1];
-            prev_delta_dists[i] = prev_delta_dists[i+1];
+            prev_dists_avg[i] = prev_dists_avg[i+1];
         }
     }
     prev_dists[PREV_DISTS-1] = dist;
-    prev_delta_dists[PREV_DISTS-1] = delta_dist;
-
+    avg_dist += dist;
     avg_dist /= PREV_DISTS;
-    avg_delta_dist /= PREV_DISTS;
+
+    prev_dists_avg[PREV_DISTS-1] = avg_dist;
+}
+
+// Determine how long to turn the solenoid on for.
+uint16_t control(int32_t alt, int32_t peer_alt, int32_t *prev_dists, int32_t *prev_dists_avg)
+{
+    int32_t release_time = 0;
+    int32_t delta_dist;
+    int32_t dist;
+
+    dist = peer_alt - alt;
+
+    /* Working on stopping after burst
+    int32_t avg_alt = 0;
+    for (int i=0; i<PREV_ALTS; i++) {
+        avg_alt += prev_alts[i];
+        if (i != PREV_ALTS-1)
+            prev_alts[i] = prev_alts[i+1];
+    }
+    prev_alts[PREV_ALTS-1] = alt;
+    avg_alt += alt;
+    avg_alt /= PREV_ALTS;
+    if (avg_alt < 
+    */
+
+    do_averaging(alt, peer_alt, prev_dists, prev_dists_avg);
+    delta_dist = prev_dists_avg[PREV_DISTS-1] - prev_dists_avg[PREV_DISTS-2];
 
     // distance and delta dist:
+    // if they're staying super close, don't do anything
     // if they're positive, compensate
     // if they're negative, don't
-    if (dist > THRESHOLD_DIST)
+    if ((dist < INNER_THRESHOLD_DIST) && (dist > -INNER_THRESHOLD_DIST) &&
+        (prev_dists_avg[PREV_DISTS-1] < INNER_THRESHOLD_DIST) &&
+        (prev_dists_avg[PREV_DISTS-1] > -INNER_THRESHOLD_DIST))
     {
-        release_time = dist * CONTROLLER_P + avg_delta_dist * CONTROLLER_D;
+        release_time = 0;
+    }
+    else if (dist > THRESHOLD_DIST)
+    {
+        release_time = dist * CONTROLLER_P + delta_dist * CONTROLLER_D;
     }
     // The other payload is close, and going to pass. Start compensating.
     // We don't need to use the averages here, because the actual samples are less noisy.
     else if (dist > -THRESHOLD_DIST)
     {
-        release_time = avg_delta_dist * CONTROLLER_D_NEAR;
+        release_time = delta_dist * CONTROLLER_D_NEAR;
     }
 
     if (release_time > MAX_SOLENOID_TIME)

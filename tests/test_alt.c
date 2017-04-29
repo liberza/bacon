@@ -26,16 +26,17 @@ int main(void)
 {
 	char buffer[BUF_LEN];
 	int32_t altitude;
+    uint16_t coeffs[8];
 	serial_init(BAUD_PRESCALE, DATA_BITS_8, STOP_BITS_1, PARITY_DISABLED);
     xbee_init();
 	sei();
 
 	wipe(buffer, BUF_LEN);
 
-	alt_init();
+	alt_init(coeffs);
 	for(ever)
 	{
-		altitude = get_alt();
+		altitude = get_alt(coeffs);
 
         sprintf(buffer, "%ld", altitude);
 		tx((uint8_t*)buffer, BUF_LEN, BROADCAST, 0x00);

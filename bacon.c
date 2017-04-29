@@ -29,7 +29,8 @@
 #define PEER_INTERVAL 1000
 #define CONTROL_INTERVAL 5000
 
-#define INITIAL_RISE 1750
+//#define INITIAL_RISE 1750
+#define INITIAL_RISE 0
 
 int main(void)
 {
@@ -46,15 +47,23 @@ int main(void)
 
     // Initialize altitudes.
     int32_t initial_alt = INT32_MIN;
+    int32_t peer_initial_alt = INT32_MIN;
     int32_t alt = INT32_MIN;
     int32_t peer_alt = INT32_MIN;
+    int32_t offset = 0;
     int32_t prev_dists[PREV_DISTS];
-    int32_t prev_delta_dists[PREV_DISTS];
+    int32_t prev_dists_avg[PREV_DISTS];
+    uint16_t alt_coeffs[8];
+
+    for (int i=0; i < PREV_DISTS; i++) {
+        prev_dists[i] = 0;
+        prev_dists_avg[i] = 0;
+    }
 
     // Perform various initializations
     status_pin_init();
     flight_mode_init();
-    alt_init();
+    alt_init(alt_coeffs);
     status_set(STATUS0 | STATUS1 | STATUS2);
     tim_init();
     solenoid_init();
@@ -115,6 +124,7 @@ int main(void)
                     status_set(STATUS5);
                     // first altitude comes from simulator, once we konw the peer.
                     initial_alt = parse_alt(frame, frame_len);
+                    // we just assume the peer's initial alt is ours for sim for now...
                     status_clear(STATUS5);
                 }
                 status_set(STATUS2);
@@ -123,7 +133,7 @@ int main(void)
             {
                 status_set(STATUS6);
                 // first altitude comes from ourself, once we know the peer.
-                initial_alt = get_alt();
+                initial_alt = get_alt(alt_coeffs);
 
                 status_clear(STATUS6);
             }
@@ -175,19 +185,31 @@ int main(void)
                     if (mode == SIM_MODE)
                         sim_timer = 500;  // synchronize with the other payload
                     else
-                        alt = get_alt();
+                        alt = get_alt(alt_coeffs);
                     peer_alt = parse_alt(frame, frame_len);
+                    if (peer_initial_alt == INT32_MIN)
+                    {
+                        peer_initial_alt = peer_alt;
+                        offset = initial_alt - peer_initial_alt;
+                        send_alt(BROADCAST, offset);
+                    }
                     // Check that we rose INITIAL_RISE decimeters from our start.
                     if (alt - initial_alt > INITIAL_RISE)
                     {
                         send_ballast = 1;
-                        ballast_time = control(alt, peer_alt, prev_dists, prev_delta_dists);
+                        ballast_time = control(alt, peer_alt + offset, prev_dists, prev_dists_avg);
                         activate_solenoid(ballast_time);
                     }
-                    // need an else so that we can do averaging at the beginning.
+                    // if not, do averaging anyway because we need delta dists right when we pass INITIAL_RISE.
+                    else
+                    {
+                        do_averaging(alt, peer_alt + offset, prev_dists, prev_dists_avg);
+                    }
                 }
                 else if (msg_type == MSG_TYPES.PAYLOAD_ALT_REQUEST)
                 {
+                    if (mode == FLIGHT_MODE)
+                        alt = get_alt(alt_coeffs);
                     send_alt(peer, alt);
                 }
                 else if (msg_type == MSG_TYPES.WAT_REQUEST)
@@ -198,6 +220,8 @@ int main(void)
             }
             if (peer_timer >= CONTROL_INTERVAL)
             {
+                if (mode == FLIGHT_MODE)
+                    alt = get_alt(alt_coeffs);
                 send_payload_alt_request(peer, alt);
                 peer_timer = 0;
                 sim_timer = 450; // synchronize with the other payload

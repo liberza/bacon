@@ -11,6 +11,8 @@ const struct msg_types_t MSG_TYPES =
     .WAT_REQUEST            = (uint8_t)'W',
     .WAT_REPLY              = (uint8_t)'w',
     .PEER_ADDR              = (uint8_t)'p',
+    .INITIAL_ALT_REQUEST    = (uint8_t)'i',
+    .INITIAL_ALT_REPLY      = (uint8_t)'I',
     .UNKNOWN                = (uint8_t)'\0'
 };
 
@@ -36,6 +38,10 @@ uint8_t get_msg_type(uint8_t *frame, uint16_t frame_len)
             ret = MSG_TYPES.WAT_REQUEST;
         else if (t == MSG_TYPES.WAT_REPLY)
             ret = MSG_TYPES.WAT_REPLY;
+        else if (t == MSG_TYPES.INITIAL_ALT_REQUEST)
+            ret = MSG_TYPES.INITIAL_ALT_REQUEST;
+        else if (t == MSG_TYPES.INITIAL_ALT_REPLY)
+            ret = MSG_TYPES.INITIAL_ALT_REPLY;
     }
     return ret;
 }
@@ -90,12 +96,27 @@ void send_payload_alt_request(uint64_t dest, uint32_t alt)
     tx(msg, 12, dest, 0x00);
 }
 
+void send_initial_alt_request(uint64_t dest)
+{
+    tx((uint8_t*)"i", 1, dest, 0x00);
+}
+
+void send_initial_alt_reply(uint64_t dest, uint32_t alt)
+{
+    // 1 type byte, 1 sign byte, 10 32-bit signed int bytes, 1 nul terminator.
+    uint8_t msg[13]; 
+    // left justify, make sure it takes up 5 chars
+    sprintf((char*)msg, "I%-11ld", (signed long)alt);
+    // transmit, don't care about nul terminator
+    tx(msg, 12, dest, 0x00);
+}
+
 int32_t parse_alt(uint8_t *frame, uint16_t frame_len)
 {
     uint8_t tmp_checksum;
     int32_t alt = INT32_MIN;
     if ((frame_len > FRAME_OHEAD.RX + 2) && 
-        ((frame[15]==MSG_TYPES.SIM_ALT) || (frame[15]==MSG_TYPES.PAYLOAD_ALT)))
+        ((frame[15]==MSG_TYPES.SIM_ALT) || (frame[15]==MSG_TYPES.PAYLOAD_ALT) || (frame[15]==MSG_TYPES.INITIAL_ALT_REPLY)))
     {
         tmp_checksum = frame[frame_len-1];
         frame[frame_len-1] = (uint8_t)'\0';

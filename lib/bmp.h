@@ -12,6 +12,8 @@ struct msg_types_t
     uint8_t WAT_REQUEST;
     uint8_t WAT_REPLY;
     uint8_t PEER_ADDR;
+    uint8_t INITIAL_ALT_REQUEST;
+    uint8_t INITIAL_ALT_REPLY;
     uint8_t UNKNOWN;
 };
 
@@ -28,6 +30,10 @@ void send_peer_addr(uint64_t addr, uint64_t dest);
 void send_sim_alt_request(uint64_t dest, uint16_t time);
 
 void send_payload_alt_request(uint64_t dest, uint32_t alt);
+
+void send_initial_alt_reply(uint64_t dest, uint32_t alt);
+
+void send_initial_alt_request(uint64_t dest);
 
 int32_t parse_alt(uint8_t *frame, uint16_t frame_len);
 

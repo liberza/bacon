@@ -21,7 +21,7 @@ int32_t cmd_adc(char cmd)
 
 	temp = 0;
 	
-	csb_hi();
+	csb_lo();
 	spi_cmd_send(CMD_ADC_CONV + cmd);
 	
 	// delays based on command sent
@@ -36,9 +36,9 @@ int32_t cmd_adc(char cmd)
 
 	
 	// pull csb high and then low to finish conversion
-	csb_lo();
-	_delay_ms(2);
 	csb_hi();
+	//_delay_ms(2);
+	csb_lo();
 
 	// sends ADC read command
 	spi_cmd_send(CMD_ADC_READ);
@@ -55,7 +55,7 @@ int32_t cmd_adc(char cmd)
 	ret = SPDR;
 	temp = temp + ret;
 
-	csb_lo();	// finished conversion
+	csb_hi();	// finished conversion
 	
 	return temp;
 }
@@ -67,22 +67,26 @@ uint16_t cmd_prom(int coef_num)
 
 	rC = 0;
 
-	csb_hi();
+	csb_lo();
 	spi_cmd_send(CMD_PROM_RD + coef_num*2);
+    _delay_ms(1);
 	spi_cmd_send(0x00);
+    _delay_ms(1);
 	ret = SPDR;
 	rC = 256 * ret;
 
 	spi_cmd_send(0x00);
+    _delay_ms(1);
 	ret = SPDR;
 
 	rC = rC + ret;
-	csb_lo();
+	csb_hi();
 
 	return rC;
 }
 
-void alt_init()
+// Expects a uint16_t* of length 8.
+void alt_init(uint16_t *C)
 {
 	// SS, MOSI, and SCK as outputs
 	DDRB |= (1 << PB3) | (1 << PB5) | (1 << PB2);
@@ -94,26 +98,24 @@ void alt_init()
 	SPCR = (1 << SPE) | (1 << MSTR);
 
 	cmd_reset();
+    _delay_ms(5);
+
+    for (int i=0; i<8; i++) {
+        C[i] = cmd_prom(i);
+        _delay_ms(1);
+    }
 }
 
-int32_t get_alt()
+// Expects a uint16_t* of length 8.
+int32_t get_alt(uint16_t *C)
 {
 	int32_t altitude;
 	uint32_t D1;
 	uint32_t D2;
-	uint16_t C[8];
 	int32_t P;
-	//int32_t T;
-	int32_t dT;
+	int64_t dT;
 	int64_t OFF;
 	int64_t SENS;
-	int i;
-
-	for (i = 0; i < 8; i++){ C[i] = 0;}
-
-	for (i = 0; i < 8; i++){
-		C[i] = cmd_prom(i);
-	}
 	
 	D1 = cmd_adc(CMD_ADC_D1 + CMD_ADC_4096);
 	D2 = cmd_adc(CMD_ADC_D2 + CMD_ADC_4096);
@@ -126,7 +128,7 @@ int32_t get_alt()
 	
 	P = (((D1*SENS)/pow(2,21) - OFF)/pow(2,15));
 			
-	altitude = -443307.7*(pow((long double)P/101325,0.190252)-1);
+	altitude = -44330.77*(pow((long double)P/101325,0.190252)-1);
 								
 	return altitude;
 }
